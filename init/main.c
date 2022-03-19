@@ -29,7 +29,7 @@ int main()
 	printf("main.c:\tmain is start ...\n");
 
 	/* This code is only for printf testing! */
-	test();
+	// test();
 	/* This is the end */
 
 	mips_init();
