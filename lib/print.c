@@ -65,21 +65,54 @@ lp_Print(void (*output)(void *, char *, int),
     for(;;) {
 
         /* Part1: your code here */
-
+	while (*fmt != '%' && *fmt != '\0')
 	{ 
 	    /* scan for the next '%' */
 	    /* flush the string found so far */
-
+		OUTPUT(arg, fmt, 1);
+		fmt += 1;
 	    /* check "are we hitting the end?" */
 	}
-
+	// If we hit the end, then break.
+	if (*fmt == '\0') {
+		break;
+	}
 	
 	/* we found a '%' */
 	
 	/* check for long */
-
-	/* check for other prefixes */
-
+	fmt += 1;
+	// check for flags: assert flags only contains
+	// one of '-' or '0'
+	ladjust = 0; // default right justification
+	padc = ' ';
+	if (*fmt == '-') {
+		ladjust = 1;
+		fmt += 1;
+	}
+	else if (*fmt == '0') {
+		padc = '0';
+		fmt += 1;
+	}
+	// check for width
+	width = 0;
+	while (IsDigit(*fmt)) {
+		width = width * 10 + Ctod(*fmt);
+		fmt += 1;
+	}
+	/* check for .precision  */
+	prec = 0;
+	if (*fmt == '.') {
+		while (IsDigit(*fmt)) {
+			prec = prec * 10 + Ctod(*fmt);
+			fmt += 1;
+		}
+	}
+	/* check for long */
+	longFlag = 0;
+	if (*fmt == 'l') {
+		longFlag = 1;
+	}
 	/* check format flag */
 	
 
@@ -108,7 +141,9 @@ lp_Print(void (*output)(void *, char *, int),
 			Refer to other part (case 'b',case 'o' etc.) and func PrintNum to complete this part.
 			Think the difference between case 'd' and others. (hint: negFlag).
 		*/
-	    
+		negFlag = (num >= 0) ? 0 : 1;
+	    length = PrintNum(buf, num, 10, negFlag, width, ladjust, padc, 0);
+		OUTPUT(arg, buf, length);
 		break;
 
 	 case 'o':
@@ -227,7 +262,7 @@ PrintNum(char * buf, unsigned long u, int base, int negFlag,
      *  2. fill the remaining spaces with padc if length is longer than
      *     the actual length
      *     TRICKY : if left adjusted, no "0" padding.
-     *		    if negtive, insert  "0" padding between "0" and number.
+     *		    if negative, insert  "0" padding between "0" and number.
      *  3. if (!ladjust) we reverse the whole string including paddings
      *  4. otherwise we only reverse the actual string representing the num.
      */
