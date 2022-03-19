@@ -103,6 +103,7 @@ lp_Print(void (*output)(void *, char *, int),
 	/* check for .precision  */
 	prec = 0;
 	if (*fmt == '.') {
+		fmt += 1;
 		while (IsDigit(*fmt)) {
 			prec = prec * 10 + Ctod(*fmt);
 			fmt += 1;

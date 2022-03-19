@@ -16,6 +16,12 @@ void test() {
 	printf("Binary = %b, Decimal = %d, Octal = %O, Unsigned = %u\n", 14, 455, 233, (int)(-56));
 	// illegal inputs
 	printf("This is an illegal input: %l, %ll, %.w\n");
+	printf("Sizeof(long) = %d\n", sizeof(long int));
+	printf("long char = %ld\n", (long int)1000000000000l);
+	printf("ladleft = %-5dThis is a.\n", 23);
+	printf("rightlad = %7dThis is a.\n", 23456);
+	printf("overwidth = %2dThis is a.\n", 12345);
+	printf("Char = %.2c.", 'w');
 }
 
 int main()
