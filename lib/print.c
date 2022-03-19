@@ -143,7 +143,11 @@ lp_Print(void (*output)(void *, char *, int),
 			Refer to other part (case 'b',case 'o' etc.) and func PrintNum to complete this part.
 			Think the difference between case 'd' and others. (hint: negFlag).
 		*/
-		negFlag = (num >= 0) ? 0 : 1;
+		if (num < 0) {
+			negFlag = 1;
+			// When we meets a negative num, we should turn it to positive, and set negFlag to 1. Because func PrintNum always consider num as an unsigned num.
+			num = -num;
+		}
 	    length = PrintNum(buf, num, 10, negFlag, width, ladjust, padc, 0);
 		OUTPUT(arg, buf, length);
 		break;
@@ -227,11 +231,11 @@ PrintChar(char * buf, char c, int length, int ladjust)
     
     if (length < 1) length = 1;
     if (ladjust) {
-	*buf = c;
-	for (i=1; i< length; i++) buf[i] = ' ';
+		*buf = c;
+		for (i=1; i< length; i++) buf[i] = ' ';
     } else {
-	for (i=0; i< length-1; i++) buf[i] = ' ';
-	buf[length - 1] = c;
+		for (i=0; i< length-1; i++) buf[i] = ' ';
+		buf[length - 1] = c;
     }
     return length;
 }
@@ -274,19 +278,19 @@ PrintNum(char * buf, unsigned long u, int base, int negFlag,
     int i;
 
     do {
-	int tmp = u %base;
-	if (tmp <= 9) {
-	    *p++ = '0' + tmp;
-	} else if (upcase) {
-	    *p++ = 'A' + tmp - 10;
-	} else {
-	    *p++ = 'a' + tmp - 10;
-	}
-	u /= base;
+		int tmp = u %base;
+		if (tmp <= 9) {
+	    	*p++ = '0' + tmp;
+		} else if (upcase) {
+		    *p++ = 'A' + tmp - 10;
+		} else {
+		    *p++ = 'a' + tmp - 10;
+		}
+		u /= base;
     } while (u != 0);
 
     if (negFlag) {
-	*p++ = '-';
+		*p++ = '-';
     }
 
     /* figure out actual length and adjust the maximum length */
@@ -295,13 +299,13 @@ PrintNum(char * buf, unsigned long u, int base, int negFlag,
 
     /* add padding */
     if (ladjust) {
-	padc = ' ';
+		padc = ' ';
     }
     if (negFlag && !ladjust && (padc == '0')) {
-	for (i = actualLength-1; i< length-1; i++) buf[i] = padc;
-	buf[length -1] = '-';
+		for (i = actualLength-1; i< length-1; i++) buf[i] = padc;
+		buf[length -1] = '-';
     } else {
-	for (i = actualLength; i< length; i++) buf[i] = padc;
+		for (i = actualLength; i< length; i++) buf[i] = padc;
     }
 	    
 

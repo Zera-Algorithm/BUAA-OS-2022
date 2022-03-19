@@ -17,11 +17,13 @@ void test() {
 	// illegal inputs
 	printf("This is an illegal input: %l, %ll, %.w\n");
 	printf("Sizeof(long) = %d\n", sizeof(long int));
-	printf("long char = %ld\n", (long int)1000000000000l);
+	printf("long num = %ld\n", (long int)10000l);
 	printf("ladleft = %-5dThis is a.\n", 23);
 	printf("rightlad = %7dThis is a.\n", 23456);
 	printf("overwidth = %2dThis is a.\n", 12345);
-	printf("Char = %.2c.", 'w');
+	printf("Char = %.2c.\n", 'w');
+	printf("Simple negative num = %d\n", (int)(-342));
+	printf("0leftpad = %06.4d\n", (int)(-12));
 }
 
 int main()
