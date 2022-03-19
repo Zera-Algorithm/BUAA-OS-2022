@@ -12,9 +12,19 @@
 #include <printf.h>
 #include <pmap.h>
 
+void test() {
+	printf("Binary = %b, Decimal = %d, Octal = %O, Unsigned = %u\n", 14, 455, 233, (int)(-56));
+	// illegal inputs
+	printf("This is an illegal input: %l, %ll, %.w\n");
+}
+
 int main()
 {
 	printf("main.c:\tmain is start ...\n");
+
+	/* This code is only for printf testing! */
+	test();
+	/* This is the end */
 
 	mips_init();
 	panic("main is over is error!");

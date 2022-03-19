@@ -79,7 +79,7 @@ lp_Print(void (*output)(void *, char *, int),
 	}
 	
 	/* we found a '%' */
-	
+	// assert *fmt == '%'
 	/* check for long */
 	fmt += 1;
 	// check for flags: assert flags only contains
@@ -112,6 +112,7 @@ lp_Print(void (*output)(void *, char *, int),
 	longFlag = 0;
 	if (*fmt == 'l') {
 		longFlag = 1;
+		fmt += 1;
 	}
 	/* check format flag */
 	
