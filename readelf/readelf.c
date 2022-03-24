@@ -77,7 +77,7 @@ int readelf(u_char *binary, int size)
 	for (i = 0; i < ph_entry_count; i++) {
 		(phdr + i) -> p_type = (Elf32_Word)i;
 	}
-	// qsort( (void *)phdr, (size_t)ph_entry_count, sizeof(Elf32_Phdr), cmp);
+	qsort( (void *)phdr, (size_t)ph_entry_count, sizeof(Elf32_Phdr), cmp);
 	
 	for (i = 0; i < ph_entry_count; i++) {
 		Elf32_Addr l1 = phdr[i].p_vaddr;
@@ -89,7 +89,7 @@ int readelf(u_char *binary, int size)
         	Elf32_Word memsz2 = phdr[i+1].p_memsz;
         	Elf32_Addr r2 = l2 + memsz2 - 1;
 
-			if( (r1 & (0xfffff000)) == (l1 & (0xfffff000)) ) {
+			if( (r1 & (0xfffff000)) == (l2 & (0xfffff000)) ) {
 				if (r1 < l1) {
 					// Overlay
 					printf("Overlay at page va : 0x%x\n", l1);
