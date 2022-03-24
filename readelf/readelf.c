@@ -79,29 +79,30 @@ int readelf(u_char *binary, int size)
 	}
 	qsort( (void *)phdr, (size_t)ph_entry_count, sizeof(Elf32_Phdr), cmp);
 	
-	for (i = 0; i < ph_entry_count-1; i++) {
+	for (i = 0; i < ph_entry_count; i++) {
 		Elf32_Addr l1 = phdr[i].p_vaddr;
 		Elf32_Word memsz1 = phdr[i].p_memsz;
 		Elf32_Addr r1 = l1 + memsz1 - 1;
+		
+		if (i+1 < ph_entry_count) {
+			Elf32_Addr l2 = phdr[i+1].p_vaddr;
+        	Elf32_Word memsz2 = phdr[i+1].p_memsz;
+        	Elf32_Addr r2 = l2 + memsz2 - 1;
 
-		Elf32_Addr l2 = phdr[i+1].p_vaddr;
-        Elf32_Word memsz2 = phdr[i+1].p_memsz;
-        Elf32_Addr r2 = l2 + memsz2 - 1;
-
-		if( (r1 & (0xfffff000)) == (l1 & (0xfffff000)) ) {
-			if (r1 < l1) {
-				// Overlay
-				printf("Overlay at page va : 0x%x\n", l1);
+			if( (r1 & (0xfffff000)) == (l1 & (0xfffff000)) ) {
+				if (r1 < l1) {
+					// Overlay
+					printf("Overlay at page va : 0x%x\n", l1);
+				}
+				else {
+					// Conflict
+					printf("Conflict at page va : 0x%x\n", l1);
+				}
+				i += 1;
+				continue;
 			}
-			else {
-				// Conflict
-				printf("Conflict at page va : 0x%x\n", l1);
-			}
-			i += 1;
 		}
-		else {
-			printf("%d:0x%x,0x%x\n", phdr[i].p_type, phdr[i].p_filesz, phdr[i].p_memsz);
-		}
+		printf("%d:0x%x,0x%x\n", phdr[i].p_type, phdr[i].p_filesz, phdr[i].p_memsz);
 	}
     return 0;
 }
