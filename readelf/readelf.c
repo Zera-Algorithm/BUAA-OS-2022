@@ -77,7 +77,7 @@ int readelf(u_char *binary, int size)
 	for (i = 0; i < ph_entry_count; i++) {
 		(phdr + i) -> p_type = (Elf32_Word)i;
 	}
-	qsort( (void *)phdr, (size_t)ph_entry_count, sizeof(Elf32_Phdr), cmp);
+	// qsort( (void *)phdr, (size_t)ph_entry_count, sizeof(Elf32_Phdr), cmp);
 	
 	for (i = 0; i < ph_entry_count; i++) {
 		Elf32_Addr l1 = phdr[i].p_vaddr;

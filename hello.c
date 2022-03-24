@@ -1,8 +1,8 @@
-#include <stdio.h>
-
+int q = 3;
+int c;
 int main() {
 	int t;
 	t = 5;
-	printf("hello World! pid=%d.", t);
-	return 0;
+	c = 6-7;
+	return t;
 }
