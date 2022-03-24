@@ -90,7 +90,7 @@ int readelf(u_char *binary, int size)
         	Elf32_Addr r2 = l2 + memsz2 - 1;
 
 			if( (r1 & (0xfffff000)) == (l2 & (0xfffff000)) ) {
-				if (r1 < l1) {
+				if (r1 < l2) {
 					// Overlay
 					printf("Overlay at page va : 0x%x\n", l1);
 				}
