@@ -70,12 +70,12 @@ int readelf(u_char *binary, int size)
         // hint: section number starts at 0.
 	shdr = (Elf32_Shdr *)(binary + shoff);
 	int i;
-	for (i = 0; i < sh_entry_count; i++) {
+	for (i = 2, shdr += 2; i <= 3; i++) {
 		Elf32_Addr section_addr = shdr->sh_addr;
-		printf("%d:0x%x\n", i, section_addr);
+		Elf32_Off section_off = shdr->sh_offset;
+		printf("Read:%d:0x%x,0x%x\n", i, section_off, section_addr);
 		shdr += 1;
 	}
-
-        return 0;
+    return 0;
 }
 
