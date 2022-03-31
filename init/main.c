@@ -24,6 +24,7 @@ void test() {
 	printf("Char = %.2c.\n", 'w');
 	printf("Simple negative num = %d\n", (int)(-342));
 	printf("0leftpad = %06.4d\n", (int)(-12));
+	printf("%0----0-04dhello.\n", (int)23);
 }
 
 int main()
@@ -31,7 +32,7 @@ int main()
 	printf("main.c:\tmain is start ...\n");
 
 	/* This code is only for printf testing! */
-	// test();
+	 test();
 	/* This is the end */
 
 	mips_init();

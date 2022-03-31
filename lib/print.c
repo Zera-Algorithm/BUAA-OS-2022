@@ -86,13 +86,23 @@ lp_Print(void (*output)(void *, char *, int),
 	// one of '-' or '0'
 	ladjust = 0; // default right justification
 	padc = ' ';
+	char flag = ' ';
+	while (*fmt == '0' || *fmt == '-') {
+		if (*fmt == '0') {
+			if (flag != '-') {
+				flag = '0';
+			}
+		}
+		else if (*fmt == '-') {
+			flag = '-';
+		}
+		fmt += 1;
+	}
 	if (*fmt == '-') {
 		ladjust = 1;
-		fmt += 1;
 	}
 	else if (*fmt == '0') {
 		padc = '0';
-		fmt += 1;
 	}
 	// check for width
 	width = 0;
