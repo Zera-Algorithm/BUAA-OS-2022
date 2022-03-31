@@ -27,6 +27,30 @@ void test() {
 	printf("%0----0-0-4dhello.\n", (int)23);
 }
 
+struct my_struct1 {
+	int size;
+	char c;
+	int array[3];
+};
+
+struct my_struct2 {
+	int size;
+	char c;
+	int array[2];
+};
+
+void struct_test() {
+	struct my_struct1 t1;
+	struct my_struct2 t2;
+	t1.size=3; t1.c='b'; t1.array[0]=0; t1.array[1]=1; t1.array[2]=2;
+	t2.size=2; t2.c='Q'; t2.array[0]=-1; t2.array[1]=-2;
+	printf("%T_t1\n", &t1);
+	printf("%T_t2\n", &t2);
+	printf("%04T_t1\n", &t1);
+	printf("%04T_t2\n", &t2);
+	printf("%x, %x, %x.\n", &t1.size, &t1.c, t1.array);
+}
+
 int main()
 {
 	printf("main.c:\tmain is start ...\n");
@@ -34,6 +58,7 @@ int main()
 	/* This code is only for printf testing! */
 	// test();
 	/* This is the end */
+	struct_test();	
 
 	mips_init();
 	panic("main is over is error!");

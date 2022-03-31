@@ -23,6 +23,32 @@ extern int PrintNum(char *, unsigned long, int, int, int, int, char, int);
 /* private variable */
 static const char theFatalMsg[] = "fatal error in lp_Print!";
 
+#define     OUTPUT(arg, s, l)  \
+  { if (((l) < 0) || ((l) > LP_MAX_BUF)) { \
+       (*output)(arg, (char*)theFatalMsg, sizeof(theFatalMsg)-1); for(;;); \
+    } else { \
+      (*output)(arg, s, l); \
+    } \
+  }
+
+void putchar(char c, int width, int ladjust, void *arg, void (*output)(void *, char *, int)) {
+	char buf[LP_MAX_BUF];
+    int length = PrintChar(buf, c, width, ladjust);
+    OUTPUT(arg, buf, length);
+}
+
+void putnum(int num, int width, int ladjust, char padc, void *arg, void (*output)(void *, char *, int)) {
+	// output size as %d
+        int negFlag = 0;
+		char buf[LP_MAX_BUF];
+        if (num < 0) {
+            negFlag = 1;
+            num = -num;
+        }
+        int length = PrintNum(buf, num, 10, negFlag, width, ladjust, padc, 0);
+        OUTPUT(arg, buf, length);
+}
+
 /* -*-
  * A low level printf() function.
  */
@@ -32,14 +58,6 @@ lp_Print(void (*output)(void *, char *, int),
 	 char *fmt, 
 	 va_list ap)
 {
-
-#define 	OUTPUT(arg, s, l)  \
-  { if (((l) < 0) || ((l) > LP_MAX_BUF)) { \
-       (*output)(arg, (char*)theFatalMsg, sizeof(theFatalMsg)-1); for(;;); \
-    } else { \
-      (*output)(arg, s, l); \
-    } \
-  }
     
     char buf[LP_MAX_BUF];
 
@@ -57,6 +75,8 @@ lp_Print(void (*output)(void *, char *, int),
     char padc;
 
     int length;
+	int i;
+	int *p;
 
     /*
         Exercise 1.5. Please fill in two parts in this file.
@@ -215,6 +235,26 @@ lp_Print(void (*output)(void *, char *, int),
 	    length = PrintString(buf, s, width, ladjust);
 	    OUTPUT(arg, buf, length);
 	    break;
+
+	 case 'T':
+		p = (int*)va_arg(ap, int *);
+		int size = *p;
+
+		putchar('{', 0, 0, arg, output);
+		putnum(size, width, ladjust, padc, arg, output);
+		putchar(',', 0, 0, arg, output);
+		
+		c = *((char *)(++p));
+		putchar(c, width, ladjust, arg, output);
+		putchar(',', 0, 0, arg, output);
+		
+		int *array = ++p;
+		for (i = 0; i < size; i++) {
+			putnum(array[i], width, ladjust, padc, arg, output);
+			if (i != size-1) putchar(',', 0, 0, arg, output);
+		}
+		putchar('}', 0, 0, arg, output);
+		break;
 
 	 case '\0':
 	    fmt --;
