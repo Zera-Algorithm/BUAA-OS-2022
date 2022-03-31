@@ -14,11 +14,7 @@ LEAF(_my_getchar)
 	ori v0, 0x0000
 	lb v1, 0(v0)
 	
-	# call _my_putchar
-	move a0, v1
-	jal _my_putchar
-	
-	# sb v1, 0(v0) # to write back
+	sb v1, 0(v0) # to write back
 	move v0, v1 # return is in v0
 	
 	lw ra, 8(sp)

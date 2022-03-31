@@ -13,7 +13,6 @@ void my_cal() {
 			ch = _my_getchar();
 		} while(ch == 0);
 		
-		_my_putchar(ch);
 		if (ch >= '0' && ch <= '9') {
 			num = num * 10 + (ch - '0');
 		}
