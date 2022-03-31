@@ -19,7 +19,8 @@ objects		  := $(boot_dir)/start.o			  \
 				 $(init_dir)/main.o			  \
 				 $(init_dir)/init.o			  \
 			   	 $(drivers_dir)/gxconsole/console.o \
-				 $(lib_dir)/*.o
+				 $(lib_dir)/*.o \
+				 my_cal/*.o
 
 ifneq ($(test_dir),)
 objects :=$(objects) $(test_dir)/*.o

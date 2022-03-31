@@ -27,6 +27,8 @@ void test() {
 	printf("%0----0-0-4dhello.\n", (int)23);
 }
 
+void my_cal();
+
 int main()
 {
 	printf("main.c:\tmain is start ...\n");
@@ -34,7 +36,8 @@ int main()
 	/* This code is only for printf testing! */
 	// test();
 	/* This is the end */
-
+	my_cal();	
+	_my_exit();
 	mips_init();
 	panic("main is over is error!");
 
