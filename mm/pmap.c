@@ -108,7 +108,7 @@ static Pte *boot_pgdir_walk(Pde *pgdir, u_long va, int create)
 		if (create) {
 			pgtable = (Pte *)alloc(BY2PG, BY2PG, 1);
 			// [4.10] pgtable is kernel virtual address.
-			*pgdir_entryp = (PADDR((ulong)pgtable)) | PTE_V | PTE_R;
+			*pgdir_entryp = (PADDR((u_long)pgtable)) | PTE_V | PTE_R;
 			// [4.10] set Page Directionary Elem and set permission bit.
 		} else {
 			return 0;
