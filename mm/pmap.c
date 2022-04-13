@@ -308,6 +308,7 @@ int pgdir_walk(Pde *pgdir, u_long va, int create, Pte **ppte)
 		if (create) {
 			// creating new page table may out of memory.
 			if ((ret = page_alloc(&ppage)) < 0) return ret;
+			ppage->pp_ref += 1; // set mem ref. Attention!
 			*pgdir_entryp = page2pa(ppage) | PTE_V | PTE_R;
 			pgtable = (Pte *)page2pa(ppage);
 		} else {
