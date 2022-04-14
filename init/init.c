@@ -12,26 +12,26 @@ static void buddy_test(){
 		buddy_alloc(4096 * (1 << i), &pa[i], &pi);
 		printf("%x %d\n", pa[i], (int)pi);
 	}
-	printf("Task1\n");
+	//printf("Task1\n");
 	// showLine();
 	for(i = 0;i <= 9;i += 2) buddy_free(pa[i]);
 	// showLine();
-	printf("Task1 --Free\n");
+	//printf("Task1 --Free\n");
 	for(i = 0;i <= 9;i += 2){
-		printf("Task1 -Alloc %d\n", i);
+		//printf("Task1 -Alloc %d\n", i);
 		buddy_alloc(4096 * (1 << i) + 1, &pa[i], &pi);printf("%x %d\n", pa[i], (int)pi);
-		if (i == 0) {
+		//if (i == 0) {
            // showLine();
            // return;
-        }
+        //}
 	}
-	printf("Task2");
+	//printf("Task2");
 	for(i = 1;i <= 9;i += 2) buddy_free(pa[i]);
 	for(i = 1;i <= 9;i += 2){
 		buddy_alloc(4096 * (1 << i) + 1, &pa[i], &pi);
 		printf("%x %d\n", pa[i], (int)pi);
 	}
-	printf("Task3");
+	//printf("Task3");
 	for(i = 0;i <= 9;i++) buddy_free(pa[i]);
 	printf("%d\n", buddy_alloc(4096 * 1024, &pa[0], &pi));
 	printf("%d\n", buddy_alloc(4096 * 1024 + 1, &pa[0], &pi));

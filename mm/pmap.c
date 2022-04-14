@@ -141,25 +141,32 @@ int buddy_alloc(u_int size, u_int *pa, u_char *pi) {
 			splitBuddy->i = buddy->i;
 			LIST_INSERT_AFTER(buddy, splitBuddy, link);
 		}
-		// if ( (1<<(buddy->i + 11)) < size  || buddy->i == 0) {
-			buddy->alloc_size = 1 << (buddy->i + 12);
-			*pa = buddy2pa(buddy);
-			*pi = buddy->i;
-			return 0;
-		//}
+		LIST_REMOVE(buddy, link); // delete an elem
+		buddy->alloc_size = 1 << (buddy->i + 12);
+		*pa = buddy2pa(buddy);
+		*pi = buddy->i;
+		return 0;
 	}
 }
 
 void buddy_free(u_int pa) {
 	struct Buddy *buddy = pa2buddy(pa);
-	struct Buddy *other;
+	struct Buddy *other, *temp, *now;
 	u_long pairAddr, buddyAddr;
 	buddy->alloc_size = 0;
+	if (LIST_EMPTY(&buddy_free_list)) LIST_INSERT_TAIL(&buddy_free_list, buddy, link);
+	else {
+		LIST_FOREACH(temp, &buddy_free_list, link) {
+			if (temp <= buddy) now = temp;
+		}
+		LIST_INSERT_AFTER(now, buddy, link);
+	}
+
 	while(1) {
 		if(buddy->i == 10) return; // 4MB
 		pairAddr = buddy2pa(buddy) ^ ( 1 << (buddy->i + 11) ); // pair Buddy's addr
 		other = pa2buddy(pairAddr); // pair Buddy's struct pointer
-		if (other->alloc_size == 0) { // merge.
+		if (other->alloc_size == 0 && other->i == buddy->i) { // merge.
 			buddyAddr = ( buddy2pa(buddy) & ( ~( 1 << (buddy->i + 11) ) ) );
 			pa2buddy(buddyAddr)->i += 1;
 			LIST_INSERT_AFTER(buddy, pa2buddy(buddyAddr), link);
