@@ -1,5 +1,6 @@
 #include <stdio.h>
 
+
 int main() {
 	int t;
 	t = 5;
