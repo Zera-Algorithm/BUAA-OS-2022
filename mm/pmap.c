@@ -121,6 +121,29 @@ static Pte *boot_pgdir_walk(Pde *pgdir, u_long va, int create)
 
 }
 
+int page_protect(struct Page *pp) {
+    int is_have = 0;
+	struct Page *temp;
+	if (pp->is_protected == 0 && pp->pp_ref == 0) {
+		// not protected and free.
+		pp->is_protected = 1;
+		/* DO: remove pp from page_free_list. */
+		LIST_FOREACH(temp, &page_free_list, pp_link) {
+			is_have = 1;
+		}
+		if (is_have) LIST_REMOVE(pp, pp_link);
+		return 0;
+	}
+	else if (pp->is_protected == 0 && pp->pp_ref != 0) return -1;
+	else return -2;
+}
+
+int page_status_query(struct Page *pp) {
+	if (pp->is_protected == 1) return 3;
+	else if (pp->is_protected == 0 && pp->pp_ref == 0) return 2;
+	else return 1;
+}
+
 /* Exercise 2.7 */
 /*Overview:
   Map [va, va+size) of virtual address space to physical [pa, pa+size) in the page
