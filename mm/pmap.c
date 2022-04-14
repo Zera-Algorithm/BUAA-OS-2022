@@ -80,6 +80,98 @@ static void *alloc(u_int n, u_int align, int clear)
 	return (void *)alloced_mem;
 }
 
+typedef LIST_ENTRY(Buddy) Buddy_list_entry;
+
+struct Buddy {
+	Buddy_list_entry link;
+	u_long i;
+	u_long alloc_size;
+};
+
+struct Buddy *buddys;
+LIST_HEAD(Buddy_list, Buddy);
+
+struct Buddy_list buddy_free_list;
+
+#define buddy_begin 0x02000000
+#define buddy_end 0x04000000
+#define buddy2pa(buddy) (u_long)( ((buddy)-buddys)*0x1000 + buddy_begin )
+#define pa2buddy(pa) ( buddys + (( (pa) - buddy_begin  )>>12) )
+
+void showLine() {
+	struct Buddy *temp;
+	LIST_FOREACH(temp, &buddy_free_list, link) {
+		printf("%x,", buddy2pa(temp));
+	}
+	printf("\n");
+}
+
+void buddy_init(void) {
+	struct Buddy *buddy;
+	u_long MB4 = (1<<22);
+	u_long nbuddy = npage >> 1;
+	u_long addr;
+	buddys = (struct Buddy *)alloc(sizeof(struct Buddy) * nbuddy, BY2PG, 1);
+	LIST_INIT(&buddy_free_list);
+	for (addr = buddy_begin; addr < buddy_end; addr += MB4) {
+		buddy = pa2buddy(addr);
+		buddy->i = 10; buddy->alloc_size = 0;
+		LIST_INSERT_TAIL(&buddy_free_list, buddy, link);
+	}
+}
+
+int buddy_alloc(u_int size, u_int *pa, u_char *pi) {
+	struct Buddy *buddy = 0;
+	struct Buddy *temp;
+	struct Buddy *splitBuddy;
+	u_long nowAddr, nextAddr;
+	LIST_FOREACH(temp, &buddy_free_list, link) {
+		if (temp->alloc_size == 0 && ( 1<<(temp->i + 12) ) >= size) {
+			buddy = temp;
+			break;
+		}
+	}
+	if (buddy == 0) return -1;
+	else {
+		while ( (1<<(buddy->i + 11)) >= size && buddy->i != 0 ) {
+			nowAddr = buddy2pa(buddy);
+			nextAddr = nowAddr + ( 1<<(buddy->i + 11) );
+			splitBuddy = pa2buddy(nextAddr);
+			buddy->i = buddy->i - 1;
+			splitBuddy->i = buddy->i;
+			LIST_INSERT_AFTER(buddy, splitBuddy, link);
+		}
+		// if ( (1<<(buddy->i + 11)) < size  || buddy->i == 0) {
+			buddy->alloc_size = 1 << (buddy->i + 12);
+			*pa = buddy2pa(buddy);
+			*pi = buddy->i;
+			return 0;
+		//}
+	}
+}
+
+void buddy_free(u_int pa) {
+	struct Buddy *buddy = pa2buddy(pa);
+	struct Buddy *other;
+	u_long pairAddr, buddyAddr;
+	buddy->alloc_size = 0;
+	while(1) {
+		if(buddy->i == 10) return; // 4MB
+		pairAddr = buddy2pa(buddy) ^ ( 1 << (buddy->i + 11) ); // pair Buddy's addr
+		other = pa2buddy(pairAddr); // pair Buddy's struct pointer
+		if (other->alloc_size == 0) { // merge.
+			buddyAddr = ( buddy2pa(buddy) & ( ~( 1 << (buddy->i + 11) ) ) );
+			pa2buddy(buddyAddr)->i += 1;
+			LIST_INSERT_AFTER(buddy, pa2buddy(buddyAddr), link);
+			LIST_REMOVE(buddy, link);
+			LIST_REMOVE(other, link);
+			buddy = pa2buddy(buddyAddr);
+			buddy->alloc_size = 0;
+		}
+		else break;
+	}
+}
+
 /* Exercise 2.6 */
 /* Overview:
    Get the page table entry for virtual address `va` in the given
