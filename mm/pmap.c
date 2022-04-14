@@ -164,10 +164,10 @@ void buddy_free(u_int pa) {
 
 	while(1) {
 		if(buddy->i == 10) return; // 4MB
-		pairAddr = buddy2pa(buddy) ^ ( 1 << (buddy->i + 11) ); // pair Buddy's addr
+		pairAddr = buddy2pa(buddy) ^ ( 1 << (buddy->i + 12) ); // pair Buddy's addr
 		other = pa2buddy(pairAddr); // pair Buddy's struct pointer
 		if (other->alloc_size == 0 && other->i == buddy->i) { // merge.
-			buddyAddr = ( buddy2pa(buddy) & ( ~( 1 << (buddy->i + 11) ) ) );
+			buddyAddr = ( buddy2pa(buddy) & ( ~( 1 << (buddy->i + 12) ) ) );
 			pa2buddy(buddyAddr)->i += 1;
 			LIST_INSERT_AFTER(buddy, pa2buddy(buddyAddr), link);
 			LIST_REMOVE(buddy, link);
