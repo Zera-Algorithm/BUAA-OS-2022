@@ -121,6 +121,32 @@ static Pte *boot_pgdir_walk(Pde *pgdir, u_long va, int create)
 
 }
 
+int inverted_page_lookup(Pde *pgdir, struct Page *pp, int vpn_buffer[]) {
+	int cnt = 0;
+	u_long i, j;
+	Pte *pgtable;
+	int page_id;
+	u_long pa = page2pa(pp);
+	//printf("pa = %x\n", pa);
+	for (i = 0; i < 1024; i++) {
+		// search for pgdir table item
+		if ( ((*(pgdir + i)) & PTE_V) != 0)  { // valid
+			// printf("PDX %x is valid.\n", i);
+			pgtable = (Pte *)KADDR(PTE_ADDR(*(pgdir + i)));
+			for (j = 0; j < 1024; j++) {
+				// printf("PTX %x is valid.\n", j);
+				// have the same physical address
+				if (PTE_ADDR(*(pgtable + j)) == pa) {
+					page_id = (i << 10) + j;
+					vpn_buffer[cnt] = page_id;
+					cnt += 1;
+				}
+			}
+		}
+	}
+	return cnt;
+}
+
 /* Exercise 2.7 */
 /*Overview:
   Map [va, va+size) of virtual address space to physical [pa, pa+size) in the page

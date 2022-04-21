@@ -99,6 +99,7 @@ void page_remove(Pde *pgdir, u_long va) ;
 void tlb_invalidate(Pde *pgdir, u_long va);
 
 void boot_map_segment(Pde *pgdir, u_long va, u_long size, u_long pa, int perm);
+int inverted_page_lookup(Pde *pgdir, struct Page *pp, int vpn_buffer[]);
 
 extern struct Page *pages;
 
