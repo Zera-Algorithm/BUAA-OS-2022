@@ -136,7 +136,7 @@ int inverted_page_lookup(Pde *pgdir, struct Page *pp, int vpn_buffer[]) {
 			for (j = 0; j < 1024; j++) {
 				// printf("PTX %x is valid.\n", j);
 				// have the same physical address
-				if (PTE_ADDR(*(pgtable + j)) == pa) {
+				if (PTE_ADDR(*(pgtable + j)) == pa && (*(pgtable + j) & PTE_V) != 0) {
 					page_id = (i << 10) + j;
 					vpn_buffer[cnt] = page_id;
 					cnt += 1;
