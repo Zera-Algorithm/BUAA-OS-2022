@@ -16,8 +16,10 @@ Pde *boot_pgdir;
 struct Page *pages;
 static u_long freemem;
 
-static struct Page_list page_free_list;	/* Free list of physical pages */
-
+// assign 1
+struct Page_list page_free_list;	/* Free list of physical pages */
+// assign 2
+struct Page_list fast_page_free_list;
 
 /* Exercise 2.1 */
 /* Overview:
@@ -222,12 +224,15 @@ void mips_vm_init()
   are reference counted, and free pages are kept on a linked list.
 Hint:
 Use `LIST_INSERT_HEAD` to insert something to list.*/
+
+#define LOW_MEM 0x3000000
 void page_init(void)
 {
 	u_long i;
 	/* Step 1: Initialize page_free_list. */
 	/* Hint: Use macro `LIST_INIT` defined in include/queue.h. */
 	LIST_INIT(&page_free_list);
+	LIST_INIT(&fast_page_free_list);
 
 	/* Step 2: Align `freemem` up to multiple of BY2PG. */
 	freemem = ROUND(freemem, BY2PG);
@@ -238,11 +243,17 @@ void page_init(void)
 		pa2page(i)->pp_ref = 1;
 	}
 
-	/* Step 4: Mark the other memory as free. */
-	for (; i < maxpa; i += BY2PG) {
+	/* Step 4: Mark the other memory as free to   page_free_list   . */
+	for (; i < LOW_MEM; i += BY2PG) {
 		pa2page(i)->pp_ref = 0;
 		LIST_INSERT_HEAD(&page_free_list, pa2page(i), pp_link);
 		// insert new elem in the head.
+	}
+	
+	/* Step 5: Insert High 16MB to    fast_page_free_list    .*/
+	for (; i < maxpa; i += BY2PG) {
+		pa2page(i)->pp_ref = 0;
+		LIST_INSERT_HEAD(&fast_page_free_list, pa2page(i), pp_link);
 	}
 }
 
@@ -279,6 +290,62 @@ int page_alloc(struct Page **pp)
 	// 0 indicates success.
 }
 
+int fast_page_alloc(struct Page **pp) {
+	struct Page *ppage_temp;
+
+    /* Step 1: Get a page from free memory. If fail, return the error code.*/
+    if (LIST_EMPTY(&fast_page_free_list)) return -E_NO_MEM;
+    ppage_temp = LIST_FIRST(&fast_page_free_list);
+
+    LIST_REMOVE(ppage_temp, pp_link);
+
+    /* Step 2: Initialize this page.
+     * Hint: use `bzero`. */
+    bzero((void *)page2kva(ppage_temp), BY2PG);
+    *pp = ppage_temp;
+    return 0;
+}
+
+struct Page* page_migrate(Pde *pgdir, struct Page* pp) {
+    u_long i, j;
+    Pte *pgtable;
+    u_long pa = page2pa(pp);
+	u_long perm;
+
+	struct Page *tp;
+	/* Step 1: select tp from the opposite memory area */
+	if (page2pa(pp) < LOW_MEM) fast_page_alloc(&tp);
+	else page_alloc(&tp);
+
+	/* Step 2: copy from pp to tp */
+	bcopy((void *)page2kva(pp), (void *)page2kva(tp), 4096);
+
+	/* Step 3: find all virtual address to pp, change them to tp,
+	   decrease pp_ref of pp, and increase pp_ref of tp */
+    for (i = 0; i < 1024; i++) {
+        // search for pgdir table item
+        if ( ((*(pgdir + i)) & PTE_V) != 0)  { // valid
+            pgtable = (Pte *)KADDR(PTE_ADDR(*(pgdir + i)));
+            for (j = 0; j < 1024; j++) {
+                // have the same physical address
+                if (PTE_ADDR(*(pgtable + j)) == pa && (*(pgtable + j) & PTE_V) != 0) {
+					perm = (*(pgtable + j) & 0xfff);
+					/* set to new Page */
+                    *(pgtable + j) = page2pa(tp) | perm;
+					pp->pp_ref -= 1;
+					tp->pp_ref += 1;
+                }
+            }
+        }
+    }
+	
+	/* Step 4: free page pp */
+	page_free(pp);
+
+	/* Step 5: return tp */
+	return tp;
+}
+
 /* Exercise 2.5 */
 /*Overview:
   Release a page, mark it as free if it's `pp_ref` reaches 0.
@@ -291,7 +358,10 @@ void page_free(struct Page *pp)
 
 	/* Step 2: If the `pp_ref` reaches 0, mark this page as free and return. */
 	else if (pp->pp_ref == 0) {
-		LIST_INSERT_HEAD(&page_free_list, pp, pp_link);
+		if (page2pa(pp) < LOW_MEM)
+			LIST_INSERT_HEAD(&page_free_list, pp, pp_link);
+		else
+			LIST_INSERT_HEAD(&fast_page_free_list, pp, pp_link);
 		return;
 	}
 	/* If the value of `pp_ref` is less than 0, some error must occurr before,
