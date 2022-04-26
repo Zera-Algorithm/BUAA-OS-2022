@@ -92,7 +92,7 @@ int envid2env(u_int envid, struct Env **penv, int checkperm)
     struct Env *e;
     /* Hint: If envid is zero, return curenv.*/
     /* Step 1: Assign value to e using envid. */
-
+    if ()
 
 
     if (e->env_status == ENV_FREE || e->env_id != envid) {
@@ -128,14 +128,16 @@ env_init(void)
 {
     int i;
     /* Step 1: Initialize env_free_list. */
-
+    LIST_INIT(env_free_list);
 
     /* Step 2: Traverse the elements of 'envs' array,
      *   set their status as free and insert them into the env_free_list.
      * Choose the correct loop order to finish the insertion.
      * Make sure, after the insertion, the order of envs in the list
      *   should be the same as that in the envs array. */
-
+    for (i = NENV - 1; i >= 0; i--) {
+        LIST_INSERT_HEAD(env_free_list, envs + i, env_link);
+    }
 
 }
 
