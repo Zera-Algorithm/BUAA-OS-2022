@@ -212,6 +212,9 @@ void page_init(void)
 		pa2page(i)->pp_ref = 1;
 	}
 
+	/* Set TIMESTACK Page as used. */
+	pa2page(PADDR(TIMESTACK))->pp_ref = 1;
+
 	/* Step 4: Mark the other memory as free. */
 	for (; i < maxpa; i += BY2PG) {
 		pa2page(i)->pp_ref = 0;
