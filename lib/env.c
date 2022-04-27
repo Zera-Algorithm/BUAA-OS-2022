@@ -96,7 +96,7 @@ int envid2env(u_int envid, struct Env **penv, int checkperm)
         *penv = curenv;
         return 0;
     }
-    else e = envs[ENVX(envid)]; // the envid is the same to the index of the envs.
+    else e = &envs[ENVX(envid)]; // the envid is the same to the index of the envs.
 
     if (e->env_status == ENV_FREE || e->env_id != envid) {
         *penv = 0;
@@ -135,7 +135,7 @@ env_init(void)
 {
     int i;
     /* Step 1: Initialize env_free_list. */
-    LIST_INIT(env_free_list);
+    LIST_INIT(&env_free_list);
 
     /* Step 2: Traverse the elements of 'envs' array,
      *   set their status as free and insert them into the env_free_list.
@@ -143,7 +143,7 @@ env_init(void)
      * Make sure, after the insertion, the order of envs in the list
      *   should be the same as that in the envs array. */
     for (i = NENV - 1; i >= 0; i--) {
-        LIST_INSERT_HEAD(env_free_list, envs + i, env_link);
+        LIST_INSERT_HEAD(&env_free_list, envs + i, env_link);
     }
 
 }
@@ -229,14 +229,16 @@ env_alloc(struct Env **new, u_int parent_id)
     struct Env *e;
 
     /* Step 1: Get a new Env from env_free_list*/
-    e = LIST_FIRST(env_free_list);
-    
+    e = LIST_FIRST(&env_free_list);
+    if (e == NULL) {
+		return -E_NO_FREE_ENV;
+	}
 
     /* Step 2: Call a certain function (has been completed just now) to init kernel memory layout for this new Env.
      *The function mainly maps the kernel address to this new Env address. */
     if ((r = env_setup_vm(e)) < 0) {
         // out of memory
-        return r;
+        return -E_NO_FREE_ENV;
     }
 
     /* Step 3: Initialize every field of new Env with appropriate values.*/
@@ -252,7 +254,8 @@ env_alloc(struct Env **new, u_int parent_id)
 
     /* Step 5: Remove the new Env from env_free_list. */
     LIST_REMOVE(e, env_link);
-
+	*new = e;
+	return 0;
 }
 
 /* Overview:
@@ -300,7 +303,7 @@ static int load_icode_mapper(u_long va, u_int32_t sgsize,
         bcopy(bin, (void *)(page2kva(p) + offset), BY2PG - offset);
         for (i = BY2PG - offset; i < bin_size; i += BY2PG) {
             /* Hint: You should alloc a new page. */
-            if ((r = page_alloc(&p) < 0) return r; /* OUT OF MEMORY */
+            if ((r = page_alloc(&p)) < 0) return r; /* OUT OF MEMORY */
             if (i + BY2PG >= bin_size) {
                 /* 1.Last Page */
                 bzero((void *)page2kva(p), BY2PG);
@@ -316,7 +319,7 @@ static int load_icode_mapper(u_long va, u_int32_t sgsize,
     /* Step 2: alloc pages to reach `sgsize` when `bin_size` < `sgsize`.
      * hint: variable `i` has the value of `bin_size` now! */
     while (i < sgsize) {
-        if ((r = page_alloc(&p) < 0) return r; /* OUT OF MEMORY */
+        if ((r = page_alloc(&p)) < 0) return r; /* OUT OF MEMORY */
         bzero((void *)page2kva(p), BY2PG);
         i += BY2PG;
     }
@@ -518,16 +521,19 @@ void env_check()
     assert(env_alloc(&pe0, 0) == 0);
     assert(env_alloc(&pe1, 0) == 0);
     assert(env_alloc(&pe2, 0) == 0);
+	printf("finish three allocs!\n");
 
     assert(pe0);
     assert(pe1 && pe1 != pe0);
     assert(pe2 && pe2 != pe1 && pe2 != pe0);
+	printf("finish three asserts!\n");
 
     /* temporarily steal the rest of the free envs */
     fl = env_free_list;
     /* now this env_free list must be empty! */
     LIST_INIT(&env_free_list);
-
+	
+	printf("Before env_alloc.\n");
     /* should be no free memory */
     assert(env_alloc(&pe, 0) == -E_NO_FREE_ENV);
 

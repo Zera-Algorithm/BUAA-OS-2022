@@ -1,0 +1,120 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+BUILD_HANDLER	genex.S	/^BUILD_HANDLER mod	page_fault_handler cli$/;"	l
+BUILD_HANDLER	genex.S	/^BUILD_HANDLER reserved do_reserved cli$/;"	l
+BUILD_HANDLER	genex.S	/^BUILD_HANDLER tlb	do_refill	cli$/;"	l
+CLI	genex.S	/^CLI$/;"	l
+CLI	syscall.S	/^CLI$/;"	l
+Ctod	print.c	16;"	d	file:
+INCLUDES	Makefile	/^INCLUDES := -I.\/ -I..\/ -I..\/include\/$/;"	m
+IsDigit	print.c	15;"	d	file:
+KERNEL_SP	env_asm.S	/^KERNEL_SP:$/;"	l
+NOPAGE	genex.S	/^NOPAGE:$/;"	l
+NoCOW	genex.S	/^NoCOW:$/;"	l
+OUTPUT	print.c	36;"	d	file:
+PrintChar	print.c	/^PrintChar(char * buf, char c, int length, int ladjust)$/;"	f
+PrintNum	print.c	/^PrintNum(char * buf, unsigned long u, int base, int negFlag, $/;"	f
+PrintString	print.c	/^PrintString(char * buf, char* s, int length, int ladjust)$/;"	f
+SAVE_ALL	genex.S	/^SAVE_ALL$/;"	l
+SAVE_ALL	syscall.S	/^SAVE_ALL$/;"	l
+_panic	printf.c	/^_panic(const char *file, int line, const char *fmt,...)$/;"	f
+addu	syscall.S	/^addu    sp, 20$/;"	l
+and	genex.S	/^and	t0, t2$/;"	l
+andi	genex.S	/^andi	t1, t0, STATUSF_IP4$/;"	l
+asid_alloc	env.c	/^static u_int asid_alloc() {$/;"	f	file:
+asid_bitmap	env.c	/^static u_int asid_bitmap[2] = {0}; \/\/ 64$/;"	v	file:
+asid_free	env.c	/^static void asid_free(u_int i) {$/;"	f	file:
+bnez	genex.S	/^bnez	t1, timer_irq$/;"	l
+curenv	env.c	/^struct Env *curenv = NULL;            \/\/ the current env$/;"	v	typeref:struct:Env
+eflags	traps.c	/^        u_int eflags;$/;"	m	struct:pgfault_trap_frame	file:
+empty1	traps.c	/^        u_int empty1;$/;"	m	struct:pgfault_trap_frame	file:
+empty2	traps.c	/^        u_int empty2;$/;"	m	struct:pgfault_trap_frame	file:
+empty3	traps.c	/^        u_int empty3;$/;"	m	struct:pgfault_trap_frame	file:
+empty4	traps.c	/^        u_int empty4;$/;"	m	struct:pgfault_trap_frame	file:
+empty5	traps.c	/^        u_int empty5;$/;"	m	struct:pgfault_trap_frame	file:
+env_alloc	env.c	/^env_alloc(struct Env **new, u_int parent_id)$/;"	f
+env_check	env.c	/^void env_check()$/;"	f
+env_create	env.c	/^env_create(u_char *binary, int size)$/;"	f
+env_create_priority	env.c	/^env_create_priority(u_char *binary, int size, int priority)$/;"	f
+env_destroy	env.c	/^env_destroy(struct Env *e)$/;"	f
+env_free	env.c	/^env_free(struct Env *e)$/;"	f
+env_free_list	env.c	/^static struct Env_list env_free_list;    \/\/ Free list$/;"	v	typeref:struct:Env_list	file:
+env_init	env.c	/^env_init(void)$/;"	f
+env_run	env.c	/^env_run(struct Env *e)$/;"	f
+env_sched_list	env.c	/^struct Env_list env_sched_list[2];      \/\/ Runnable list$/;"	v	typeref:struct:Env_list
+env_setup_vm	env.c	/^env_setup_vm(struct Env *e)$/;"	f	file:
+envid2env	env.c	/^int envid2env(u_int envid, struct Env **penv, int checkperm)$/;"	f
+envs	env.c	/^struct Env *envs = NULL;        \/\/ All environments$/;"	v	typeref:struct:Env
+err	traps.c	/^        u_int err;$/;"	m	struct:pgfault_trap_frame	file:
+exception_handlers	traps.c	/^unsigned long exception_handlers[32];$/;"	v
+fault_va	traps.c	/^        u_int fault_va;$/;"	m	struct:pgfault_trap_frame	file:
+illegal_syscall	syscall.S	/^illegal_syscall: j illegal_syscall$/;"	l
+is_elf_format	kernel_elfloader.c	/^int is_elf_format(u_char *binary)$/;"	f
+j	syscall.S	/^j       ret_from_exception\/\/extern?$/;"	l
+jalr	syscall.S	/^jalr    t2$/;"	l
+kclock_init	kclock.c	/^kclock_init(void)$/;"	f
+la	syscall.S	/^la      t1, sys_call_table$/;"	l
+load_elf	kernel_elfloader.c	/^int load_elf(u_char *binary, int size, u_long *entry_point, void *user_data,$/;"	f
+load_icode	env.c	/^load_icode(struct Env *e, u_char *binary, u_int size)$/;"	f	file:
+load_icode_check	env.c	/^void load_icode_check() {$/;"	f
+load_icode_mapper	env.c	/^static int load_icode_mapper(u_long va, u_int32_t sgsize,$/;"	f	file:
+lp_Print	print.c	/^lp_Print(void (*output)(void *, char *, int), $/;"	f
+lw	syscall.S	/^lw      t0,TF_REG29(sp)$/;"	l
+lw	syscall.S	/^lw      t1, (t0)$/;"	l
+lw	syscall.S	/^lw      t2, (t1)$/;"	l
+lw	syscall.S	/^lw      t3, 4(t0)$/;"	l
+lw	syscall.S	/^lw      t4, 8(t0)$/;"	l
+lw	syscall.S	/^lw      t5, 12(t0)$/;"	l
+lw	syscall.S	/^lw      t6, 16(t0)$/;"	l
+lw	syscall.S	/^lw      t7, 20(t0)$/;"	l
+lw	syscall.S	/^lw t1, TF_EPC(sp)$/;"	l
+memcpy	syscall_all.c	/^void *memcpy(void *destaddr, void const *srcaddr, u_int len)$/;"	f
+mfc0	genex.S	/^mfc0	t0, CP0_CAUSE$/;"	l
+mfc0	genex.S	/^mfc0	t2, CP0_STATUS$/;"	l
+mkenvid	env.c	/^u_int mkenvid(struct Env *e) {$/;"	f
+move	syscall.S	/^move    a0, t1$/;"	l
+move	syscall.S	/^move    a1, t3$/;"	l
+move	syscall.S	/^move    a2, t4$/;"	l
+move	syscall.S	/^move    a3, t5$/;"	l
+myoutput	printf.c	/^static void myoutput(void *arg, char *s, int l)$/;"	f	file:
+nop	genex.S	/^nop$/;"	l
+nop	syscall.S	/^nop$/;"	l
+page_fault_handler	traps.c	/^page_fault_handler(struct Trapframe *tf)$/;"	f
+pc	traps.c	/^        u_int pc;$/;"	m	struct:pgfault_trap_frame	file:
+pgfault_trap_frame	traps.c	/^struct pgfault_trap_frame{$/;"	s	file:
+printf	printf.c	/^void printf(char *fmt, ...)$/;"	f
+sched_yield	sched.c	/^void sched_yield(void)$/;"	f
+set_except_vector	traps.c	/^void *set_except_vector(int n, void * addr){$/;"	f
+setup_c0_status	kclock_asm.S	/^setup_c0_status STATUS_CU0|0x1001 0$/;"	l
+sp	traps.c	/^        u_int sp;$/;"	m	struct:pgfault_trap_frame	file:
+subu	syscall.S	/^subu    sp, 20$/;"	l
+sw	syscall.S	/^sw      t1, 0(sp)$/;"	l
+sw	syscall.S	/^sw      t1, TF_EPC(sp)$/;"	l
+sw	syscall.S	/^sw      t3, 4(sp)$/;"	l
+sw	syscall.S	/^sw      t4, 8(sp)$/;"	l
+sw	syscall.S	/^sw      t5, 12(sp)$/;"	l
+sw	syscall.S	/^sw      t6, 16(sp)$/;"	l
+sw	syscall.S	/^sw      t7, 20(sp)$/;"	l
+sw	syscall.S	/^sw      v0, TF_REG2(sp)$/;"	l
+sys_env_alloc	syscall_all.c	/^int sys_env_alloc(void)$/;"	f
+sys_env_destroy	syscall_all.c	/^int sys_env_destroy(int sysno, u_int envid)$/;"	f
+sys_getenvid	syscall_all.c	/^u_int sys_getenvid(void)$/;"	f
+sys_ipc_can_send	syscall_all.c	/^int sys_ipc_can_send(int sysno, u_int envid, u_int value, u_int srcva, u_int perm)$/;"	f
+sys_ipc_recv	syscall_all.c	/^void sys_ipc_recv(int sysno, u_int dstva)$/;"	f
+sys_mem_alloc	syscall_all.c	/^int sys_mem_alloc(int sysno, u_int envid, u_int va, u_int perm)$/;"	f
+sys_mem_map	syscall_all.c	/^int sys_mem_map(int sysno, u_int srcid, u_int srcva, u_int dstid, u_int dstva,$/;"	f
+sys_mem_unmap	syscall_all.c	/^int sys_mem_unmap(int sysno, u_int envid, u_int va)$/;"	f
+sys_panic	syscall_all.c	/^void sys_panic(int sysno, char *msg)$/;"	f
+sys_putchar	syscall_all.c	/^void sys_putchar(int sysno, int c, int a2, int a3, int a4, int a5)$/;"	f
+sys_set_env_status	syscall_all.c	/^int sys_set_env_status(int sysno, u_int envid, u_int status)$/;"	f
+sys_set_pgfault_handler	syscall_all.c	/^int sys_set_pgfault_handler(int sysno, u_int envid, u_int func, u_int xstacktop)$/;"	f
+sys_set_trapframe	syscall_all.c	/^int sys_set_trapframe(int sysno, u_int envid, struct Trapframe *tf)$/;"	f
+sys_yield	syscall_all.c	/^void sys_yield(void)$/;"	f
+syscalltable	syscall.S	/^syscalltable$/;"	l
+theFatalMsg	print.c	/^static const char theFatalMsg[] = "fatal error in lp_Print!";$/;"	v	file:
+timer_irq	genex.S	/^timer_irq:$/;"	l
+trap_init	traps.c	/^void trap_init(){$/;"	f
