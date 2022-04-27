@@ -91,9 +91,12 @@ int envid2env(u_int envid, struct Env **penv, int checkperm)
 {
     struct Env *e;
     /* Hint: If envid is zero, return curenv.*/
-    /* Step 1: Assign value to e using envid. */
-    if ()
-
+    /* Step 1: Assign value to a using envid. */
+    if (envid == 0) {
+        *penv = curenv;
+        return 0;
+    }
+    else e = envs[ENVX(envid)]; // the envid is the same to the index of the envs.
 
     if (e->env_status == ENV_FREE || e->env_id != envid) {
         *penv = 0;
@@ -106,9 +109,13 @@ int envid2env(u_int envid, struct Env **penv, int checkperm)
      *    must be either curenv or an immediate child of curenv.
      *  If not, error! */
     /*  Step 2: Make a check according to checkperm. */
-
-
-
+    if (checkperm == 1) {
+        if (e->env_id != curenv->env_id && e->env_id != curenv->env_id + 1) {
+            // Failed: this env is not curenv or its immediate child.
+            *penv = 0;
+            return -E_BAD_ENV;
+        }
+    }
 
     *penv = e;
     return 0;
@@ -160,15 +167,18 @@ env_setup_vm(struct Env *e)
     /* Step 1: Allocate a page for the page directory
      *   using a function you completed in the lab2 and add its pp_ref.
      *   pgdir is the page directory of Env e, assign value for it. */
-    if (      ) {
+    if ((r = page_alloc(&p)) < 0) {
         panic("env_setup_vm - page alloc error\n");
         return r;
     }
-
+    p->pp_ref += 1;
+    pgdir = page2pa()
 
 
     /* Step 2: Zero pgdir's field before UTOP. */
-
+    for (i = 0; i < PDX(UTOP); i++) {
+        pgdir[i] = 0;
+    }
 
 
 
@@ -181,6 +191,9 @@ env_setup_vm(struct Env *e)
      *  See ./include/mmu.h for layout.
      *  Can you use boot_pgdir as a template?
      */
+    for (i = PDX(UTOP); i < 1024; i++) {
+
+    }
 
 
     /* UVPT maps the env's own page table, with read-only permission.*/
