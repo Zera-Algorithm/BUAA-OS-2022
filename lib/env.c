@@ -195,6 +195,7 @@ int V(struct Env *e, int s) {
 			}
 			signal[s] += 1;
 			e->res1 -= 1;
+			if (e->res1 < 0) e->res1 = 0;
 		}
 		else {
 			if (!LIST_EMPTY(&wait2)) {
@@ -205,6 +206,7 @@ int V(struct Env *e, int s) {
 			}
 			signal[s] += 1;
 			e->res2 -= 1;
+			if (e->res2 < 0) e->res2 = 0;
 		}
 		return 0;
 	}
