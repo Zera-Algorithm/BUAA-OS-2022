@@ -249,7 +249,7 @@ env_alloc(struct Env **new, u_int parent_id)
 
 
     /* Step 4: Focus on initializing the sp register and cp0_status of env_tf field, located at this new Env. */
-    e->env_tf.regs[29] = UXSTACKTOP; // sp register
+    e->env_tf.regs[29] = USTACKTOP; // sp register
     e->env_tf.cp0_status = 0x10001004;
 
 
@@ -383,7 +383,7 @@ load_icode(struct Env *e, u_char *binary, u_int size)
 
     /* Step 2: Use appropriate perm to set initial stack for new Env. */
     /* Hint: Should the user-stack be writable? */
-    page_insert(e->env_pgdir, p, UXSTACKTOP - BY2PG, PTE_V | PTE_R); /* Permission: Writable. */
+    page_insert(e->env_pgdir, p, USTACKTOP - BY2PG, PTE_V | PTE_R); /* Permission: Writable. */
 	// printf("Load: page_insert\n");
 
     /* Step 3: load the binary using elf loader. */
