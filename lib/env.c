@@ -196,7 +196,7 @@ int V(struct Env *e, int s) {
 				LIST_REMOVE(temp, wait1_link);
 
 				e->res1 -= 1;
-                if (e->res1 < 0) e->res1 = 0;
+				if (e->res1 < 0) e->res1 = 0;
 			}
 			else {
 				signal[s] += 1;
@@ -214,9 +214,11 @@ int V(struct Env *e, int s) {
 				e->res2 -= 1;
 				if (e->res2 < 0) e->res2 = 0;
 			}
-			signal[s] += 1;
-			e->res2 -= 1;
-			if (e->res2 < 0) e->res2 = 0;
+			else {
+				signal[s] += 1;
+				e->res2 -= 1;
+				if (e->res2 < 0) e->res2 = 0;
+			}
 		}
 		return 0;
 	}
