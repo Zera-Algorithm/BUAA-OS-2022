@@ -102,6 +102,8 @@ int envid2env(u_int envid, struct Env **penv, int checkperm)
         *penv = 0;
         return -E_BAD_ENV;
     }
+	printf("envid2env: Step1 completed.\n");
+
     /* Hints:
      *  Check whether the calling env has sufficient permissions
      *    to manipulate the specified env.
@@ -116,6 +118,7 @@ int envid2env(u_int envid, struct Env **penv, int checkperm)
             return -E_BAD_ENV;
         }
     }
+	printf("envid2env: Step2 completed.\n");
 
     *penv = e;
     return 0;
@@ -255,6 +258,7 @@ env_alloc(struct Env **new, u_int parent_id)
     /* Step 5: Remove the new Env from env_free_list. */
     LIST_REMOVE(e, env_link);
 	*new = e;
+	printf("This new env's ID is %d.\n", e->env_id);
 	return 0;
 }
 
@@ -354,13 +358,16 @@ load_icode(struct Env *e, u_char *binary, u_int size)
 
     /* Step 1: alloc a page. */
     page_alloc(&p);
+	printf("Load: page_alloc. \n");
 
     /* Step 2: Use appropriate perm to set initial stack for new Env. */
     /* Hint: Should the user-stack be writable? */
     page_insert(e->env_pgdir, p, UXSTACKTOP - BY2PG, PTE_V | PTE_R); /* Permission: Writable. */
+	printf("Load: page_insert\n");
 
     /* Step 3: load the binary using elf loader. */
     load_elf(binary, size, &entry_point, (void *)e, load_icode_mapper);
+	printf("Load: Load_elf\n");
 
     /* Step 4: Set CPU's PC register as appropriate value. */
     e->env_tf.pc = entry_point;
@@ -592,22 +599,30 @@ void env_check()
 
 void load_icode_check() {
     /* check_icode.c from init/init.c */
+	printf("[ info ] Load_icode_check Begins!!! \n");
     extern u_char binary_user_check_icode_start[];
     extern u_int binary_user_check_icode_size;
     env_create(binary_user_check_icode_start, binary_user_check_icode_size);
     struct Env* e;
     Pte* pte;
     u_int paddr;
+	printf("Line 606\n");
     assert(envid2env(1024, &e, 0) == 0);
     /* text & data: 0x00401030 - 0x00409adc left closed and right open interval */
+	printf("Before pgdir_walk.\n");
     assert(pgdir_walk(e->env_pgdir, 0x00401000, 0, &pte) == 0);
+	printf("End pgdir_walk.\n");
     assert(*((int *)KADDR(PTE_ADDR(*pte)) + 0xc) == 0x8fa40000);
+	printf("line 616\n");
     assert(*((int *)KADDR(PTE_ADDR(*pte)) + 1023) == 0x26300001);
+	printf("line 618\n");
     assert(pgdir_walk(e->env_pgdir, 0x00402000, 0, &pte) == 0);
+	printf("0000000000000\n");
     assert(*((int *)KADDR(PTE_ADDR(*pte))) == 0x10800004);
     assert(*((int *)KADDR(PTE_ADDR(*pte)) + 1023) == 0x00801821);
     assert(pgdir_walk(e->env_pgdir, 0x00403000, 0, &pte) == 0);
     assert(*((int *)KADDR(PTE_ADDR(*pte))) == 0x80a20000);
+	printf("11111111111\n");
     assert(*((int *)KADDR(PTE_ADDR(*pte)) + 1023) == 0x24060604);
     assert(pgdir_walk(e->env_pgdir, 0x00404000, 0, &pte) == 0);
     assert(*((int *)KADDR(PTE_ADDR(*pte))) == 0x04400043);
@@ -618,12 +633,14 @@ void load_icode_check() {
     assert(pgdir_walk(e->env_pgdir, 0x00406000, 0, &pte) == 0);
     assert(*((int *)KADDR(PTE_ADDR(*pte))) == 0x00000000);
     assert(*((int *)KADDR(PTE_ADDR(*pte)) + 1023) == 0x00000000);
+	printf("222222222222\n");
     assert(pgdir_walk(e->env_pgdir, 0x00407000, 0, &pte) == 0);
     assert(*((int *)KADDR(PTE_ADDR(*pte))) == 0x7f400000);
     assert(*((int *)KADDR(PTE_ADDR(*pte)) + 1023) == 0x00000000);
     assert(pgdir_walk(e->env_pgdir, 0x00408000, 0, &pte) == 0);
     assert(*((int *)KADDR(PTE_ADDR(*pte))) == 0x0000fffe);
     assert(*((int *)KADDR(PTE_ADDR(*pte)) + 1023) == 0x00000000);
+	printf("3333333333333\n");
     assert(pgdir_walk(e->env_pgdir, 0x00409000, 0, &pte) == 0);
     assert(*((int *)KADDR(PTE_ADDR(*pte))) == 0x00000000);
     assert(*((int *)KADDR(PTE_ADDR(*pte)) + 0x2aa) == 0x004099fc);
