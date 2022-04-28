@@ -22,6 +22,7 @@ void mips_init()
 	/*** exercise 3.9 ***/
 	/*you may want to create process by MACRO, please read env.h file, in which you will find it. this MACRO is very
 	 * interesting, have fun please*/
+	printf("Now CREATE process...\n");
 	ENV_CREATE_PRIORITY(user_A, 2);
 	ENV_CREATE_PRIORITY(user_B, 1);
 
@@ -57,16 +58,29 @@ void bcopy(const void *src, void *dst, size_t len)
 void bzero(void *b, size_t len)
 {
 	void *max;
+	/* debug */ int i = 0;
 
 	max = b + len;
-
+	
 	//printf("init.c:\tzero from %x to %x\n",(int)b,(int)max);
 
 	// zero machine words while possible
 
+	/* ZRP bug fix: possible bug: b is not aligned with 4. */
+	while ( ((u_long)(b) & 0x4) != 0 ) {
+		*(char *)b = 0;
+		b+=1;
+	}
+
 	while (b + 3 < max)
 	{
 		*(int *)b = 0;
+		/* debug */
+		if (i == 0) {
+			printf("First Zero Write: %x\n", b);
+		}
+		i = 1;
+		/* end debug */
 		b+=4;
 	}
 

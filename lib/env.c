@@ -297,20 +297,29 @@ static int load_icode_mapper(u_long va, u_int32_t sgsize,
 	// pgdir_walk(env->env_pgdir, nowVA, 0, &pte);
 	// printf("Map VA(%x) to PA(%x), pageKVA = %x\n", nowVA, PTE_ADDR(*pte), page2kva(p));
 	/* end debug */
-
+	
+	printf("line 301\n");
     if (offset != 0) {
         /* Step1: If first page has some empty, then clear that. */
         bzero((void *)page2kva(p), offset); /* Zero Left Empty. */
     }
-
+	
+	printf("line 307\n");
     /* Condition: |---(----)---| Only One Page */
 	// printf("bin[0] = %x, offset = %x\n", *(int *)bin, offset);
     if (offset + bin_size <= BY2PG) {
+		printf("branch 1\n");
         bcopy(bin, (page2kva(p) + offset), bin_size);
+		printf("branch 1: end bcopy\n");
 		// printf("VA_DATA = %x\n", *(int *)(page2kva(p) + offset));
+		printf("start = %x, size = %x\n", page2kva(p) + offset + bin_size, BY2PG - offset - bin_size);
         bzero((void *)(page2kva(p) + offset + bin_size), BY2PG - offset - bin_size); /* Zero right empty. */
+		printf("branch 1: end bzero\n");
+		i += BY2PG;
+		nowVA += BY2PG;
     }
     else {
+		printf("branch 2\n");
         /* Condition: |----(----|---------|----)---| */
         bcopy(bin, (void *)(page2kva(p) + offset), BY2PG - offset);
 		// printf("VA_DATA = %x\n", *(int *)(page2kva(p) + offset));
@@ -332,6 +341,7 @@ static int load_icode_mapper(u_long va, u_int32_t sgsize,
     // printf("Mapper: pte = %x.\n", *((int *)KADDR(PTE_ADDR(*pte))+0xc));
     /* Step 2: alloc pages to reach `sgsize` when `bin_size` < `sgsize`.
      * hint: variable `i` has the value of `bin_size` now! */
+	printf("line 337\n");
     while (i < sgsize) {
         if ((r = page_alloc(&p)) < 0) return r; /* OUT OF MEMORY */
         page_insert(env->env_pgdir, p, nowVA, PTE_V | PTE_R);
@@ -375,11 +385,11 @@ load_icode(struct Env *e, u_char *binary, u_int size)
     /* Step 2: Use appropriate perm to set initial stack for new Env. */
     /* Hint: Should the user-stack be writable? */
     page_insert(e->env_pgdir, p, UXSTACKTOP - BY2PG, PTE_V | PTE_R); /* Permission: Writable. */
-	// printf("Load: page_insert\n");
+	printf("Load: page_insert\n");
 
     /* Step 3: load the binary using elf loader. */
     load_elf(binary, size, &entry_point, (void *)e, load_icode_mapper);
-	// printf("Load: Load_elf\n");
+	printf("Load: Load_elf\n");
 
     /* Step 4: Set CPU's PC register as appropriate value. */
     e->env_tf.pc = entry_point;
@@ -400,12 +410,16 @@ env_create_priority(u_char *binary, int size, int priority)
 {
     struct Env *e;
     /* Step 1: Use env_alloc to alloc a new env. */
+	printf("[CREATE] before env_alloc\n");
     env_alloc(&e, 0);
+	printf("[CREATE] end env_alloc.\n");
     /* Step 2: assign priority to the new env. */
     e->env_pri = priority;
     /* Step 3: Use load_icode() to load the named elf binary,
        and insert it into env_sched_list using LIST_INSERT_HEAD. */
+	printf("[CREATE] before load_icode.\n");
     load_icode(e, binary, size);
+	printf("[CREATE] end load_icode\n");
     LIST_INSERT_HEAD(env_sched_list, e, env_sched_link);
 }
 /* Overview:
