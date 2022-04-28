@@ -194,10 +194,15 @@ int V(struct Env *e, int s) {
 				temp->res1 += 1;
 				temp->env_status = ENV_RUNNABLE;
 				LIST_REMOVE(temp, wait1_link);
+
+				e->res1 -= 1;
+                if (e->res1 < 0) e->res1 = 0;
 			}
-			signal[s] += 1;
-			e->res1 -= 1;
-			if (e->res1 < 0) e->res1 = 0;
+			else {
+				signal[s] += 1;
+				e->res1 -= 1;
+				if (e->res1 < 0) e->res1 = 0;
+			}
 		}
 		else {
 			if (!LIST_EMPTY(&wait2)) {
@@ -205,6 +210,9 @@ int V(struct Env *e, int s) {
 				temp->res2 += 1;
 				temp->env_status = ENV_RUNNABLE;
 				LIST_REMOVE(temp, wait2_link);
+				
+				e->res2 -= 1;
+				if (e->res2 < 0) e->res2 = 0;
 			}
 			signal[s] += 1;
 			e->res2 -= 1;
