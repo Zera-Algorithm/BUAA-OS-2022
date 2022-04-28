@@ -66,6 +66,11 @@ static void asid_free(u_int i) {
  * Post-Condition:
  *  return e's envid on success
  */
+
+/* Env_id format:
+ * asid(6)        ENVX(10)
+ * xxxx_xx   1   xxxx_xxxx_xx
+ */
 u_int mkenvid(struct Env *e) {
     u_int idx = e - envs;
     u_int asid = asid_alloc();
@@ -111,7 +116,7 @@ int envid2env(u_int envid, struct Env **penv, int checkperm)
      *  If not, error! */
     /*  Step 2: Make a check according to checkperm. */
     if (checkperm == 1) {
-        if (e->env_id != curenv->env_id && e->env_id != curenv->env_id + 1) {
+        if (e->env_id != curenv->env_id && e->env_parent_id != curenv) {
             // Failed: this env is not curenv or its immediate child.
             *penv = 0;
             return -E_BAD_ENV;
