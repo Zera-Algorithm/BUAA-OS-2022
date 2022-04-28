@@ -169,8 +169,8 @@ int P(struct Env* e, int s) {
 			/* Request success. */
 			signal[s] -= 1;
 			/* Mark the Env as hold corresponding res. */
-			if (s == 1) e->res1 += 1;
-			else e->res2 += 1;
+			if (s == 1) e->res1 = 1;
+			else e->res2 = 1;
 		}
 		else {
 			e->env_status = ENV_NOT_RUNNABLE;
@@ -214,7 +214,6 @@ int V(struct Env *e, int s) {
 
 int get_status(struct Env* e) {
 	struct Env *temp;
-	int is_wait = 0;
 	/* cond1: Wait for Res. */
 	if (e->env_status == ENV_NOT_RUNNABLE) return 1;
 	/* cond2: hold at least one res. */
