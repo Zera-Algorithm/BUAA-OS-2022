@@ -291,20 +291,13 @@ static int load_icode_mapper(u_long va, u_int32_t sgsize,
 	// printf("va = %x.\n", va);
     /* Step 1: load all content of bin into memory. */
     if ((r = page_alloc(&p)) < 0)
-        return r;   /* Out Of Memoty! */
+        return r;   /* Out Of Memory! */
     page_insert(env->env_pgdir, p, nowVA, PTE_V | PTE_R);
 	/* begin debug */
 	// pgdir_walk(env->env_pgdir, nowVA, 0, &pte);
 	// printf("Map VA(%x) to PA(%x), pageKVA = %x\n", nowVA, PTE_ADDR(*pte), page2kva(p));
 	/* end debug */
 	
-	// printf("line 301\n");
-    if (offset != 0) {
-        /* Step1: If first page has some empty, then clear that. */
-        bzero((void *)page2kva(p), offset); /* Zero Left Empty. */
-    }
-	
-	// printf("line 307\n");
     /* Condition: |---(----)---| Only One Page */
 	// printf("bin[0] = %x, offset = %x\n", *(int *)bin, offset);
     if (offset + bin_size <= BY2PG) {
@@ -312,9 +305,6 @@ static int load_icode_mapper(u_long va, u_int32_t sgsize,
         bcopy(bin, (page2kva(p) + offset), bin_size);
 		// printf("branch 1: end bcopy\n");
 		// printf("VA_DATA = %x\n", *(int *)(page2kva(p) + offset));
-		// printf("start = %x, size = %x\n", page2kva(p) + offset + bin_size, BY2PG - offset - bin_size);
-        bzero((void *)(page2kva(p) + offset + bin_size), BY2PG - offset - bin_size); /* Zero right empty. */
-		// printf("branch 1: end bzero\n");
 		i += BY2PG;
 		nowVA += BY2PG;
     }
@@ -329,7 +319,6 @@ static int load_icode_mapper(u_long va, u_int32_t sgsize,
             page_insert(env->env_pgdir, p, nowVA, PTE_V | PTE_R);
             if (i + BY2PG >= bin_size) {
                 /* 1.Last Page */
-                bzero((void *)page2kva(p), BY2PG);
                 bcopy(bin+i, (void *)page2kva(p), bin_size - i);
             }
             else {
@@ -344,7 +333,6 @@ static int load_icode_mapper(u_long va, u_int32_t sgsize,
     while (i < sgsize) {
         if ((r = page_alloc(&p)) < 0) return r; /* OUT OF MEMORY */
         page_insert(env->env_pgdir, p, nowVA, PTE_V | PTE_R);
-        bzero((void *)page2kva(p), BY2PG);
         i += BY2PG;
         nowVA += BY2PG;
     }
