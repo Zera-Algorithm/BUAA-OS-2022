@@ -288,10 +288,13 @@ static int load_icode_mapper(u_long va, u_int32_t sgsize,
     u_long i;
     int r;
     u_long offset = va - ROUNDDOWN(va, BY2PG);
+    u_long nowVA = ROUNDDOWN(va, BY2PG);
 
     /* Step 1: load all content of bin into memory. */
     if ((r = page_alloc(&p)) < 0)
         return r;   /* Out Of Memoty! */
+    page_insert(env->env_pgdir, p, ROUNDDOWN(va, BY2PG), PTE_V | PTE_R);
+
     if (offset != 0) {
         /* Step1: If first page has some empty, then clear that. */
         bzero((void *)page2kva(p), offset); /* Zero Left Empty. */
@@ -305,9 +308,10 @@ static int load_icode_mapper(u_long va, u_int32_t sgsize,
     else {
         /* Condition: |----(----|---------|----)---| */
         bcopy(bin, (void *)(page2kva(p) + offset), BY2PG - offset);
-        for (i = BY2PG - offset; i < bin_size; i += BY2PG) {
+        for (i = BY2PG - offset; i < bin_size; i += BY2PG, nowVA += BY2PG) {
             /* Hint: You should alloc a new page. */
             if ((r = page_alloc(&p)) < 0) return r; /* OUT OF MEMORY */
+            page_insert(env->env_pgdir, p, nowVA, PTE_V | PTE_R);
             if (i + BY2PG >= bin_size) {
                 /* 1.Last Page */
                 bzero((void *)page2kva(p), BY2PG);
@@ -324,8 +328,10 @@ static int load_icode_mapper(u_long va, u_int32_t sgsize,
      * hint: variable `i` has the value of `bin_size` now! */
     while (i < sgsize) {
         if ((r = page_alloc(&p)) < 0) return r; /* OUT OF MEMORY */
+        page_insert(env->env_pgdir, p, nowVA, PTE_V | PTE_R);
         bzero((void *)page2kva(p), BY2PG);
         i += BY2PG;
+        nowVA += BY2PG;
     }
     return 0;
 }
