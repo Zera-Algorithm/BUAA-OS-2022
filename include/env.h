@@ -27,6 +27,12 @@ struct Env {
 	Pde  *env_pgdir;                // Kernel virtual address of page dir
 	u_int env_cr3;
 	LIST_ENTRY(Env) env_sched_link;
+
+	LIST_ENTRY(Env) wait1_link;
+	LIST_ENTRY(Env) wait2_link;
+	int res1; /* Is the Env holds an resource? */
+	int res2;
+
         u_int env_pri;
 	// Lab 4 IPC
 	u_int env_ipc_value;            // data value sent to us 
@@ -58,6 +64,12 @@ void env_destroy(struct Env *e);
 
 int envid2env(u_int envid, struct Env **penv, int checkperm);
 void env_run(struct Env *e);
+
+void S_init(int s, int num);
+int P(struct Env *e, int s);
+int V(struct Env *e, int s);
+int get_status(struct Env *e);
+int my_env_create();
 
 
 // for the grading script

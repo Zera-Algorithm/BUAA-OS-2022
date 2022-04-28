@@ -154,6 +154,83 @@ env_init(void)
 
 }
 
+int signal[3];
+struct Env_list wait1, wait2;
+void S_init(int s, int num) {
+	signal[s] = num;
+	if (s == 1) LIST_INIT(&wait1);
+	else LIST_INIT(&wait2);
+}
+
+int P(struct Env* e, int s) {
+	if (e->env_status == ENV_NOT_RUNNABLE) return -1;
+	else {
+		if (signal[s] > 0) {
+			/* Request success. */
+			signal[s] -= 1;
+			/* Mark the Env as hold corresponding res. */
+			if (s == 1) e->res1 = 1;
+			else e->res2 = 1;
+		}
+		else {
+			e->env_status = ENV_NOT_RUNNABLE;
+			/* INSERT current Env to the wait Queue. */
+			if(s == 1) LIST_INSERT_TAIL(&wait1, e, wait1_link);
+			else LIST_INSERT_TAIL(&wait2, e, wait2_link);
+		}
+		return 0;
+	}
+}
+
+int V(struct Env *e, int s) {
+	struct Env *temp;
+	if (e->env_status == ENV_NOT_RUNNABLE) return -1;
+	else {
+		if (s == 1) {
+			if (!LIST_EMPTY(&wait1)) {
+				temp = LIST_FIRST(&wait1);
+				temp->res1 = 1;
+				temp->env_status = ENV_RUNNABLE;
+				LIST_REMOVE(temp, wait1_link);
+			}
+			signal[s] += 1;
+			e->res1 = 0;
+		}
+		else {
+			if (!LIST_EMPTY(&wait2)) {
+				temp = LIST_FIRST(&wait2);
+				temp->res2 = 1;
+				temp->env_status = ENV_RUNNABLE;
+				LIST_REMOVE(temp, wait2_link);
+			}
+			signal[s] += 1;
+			e->res2 = 0;
+		}
+		return 0;
+	}
+}
+
+int get_status(struct Env* e) {
+	struct Env *temp;
+	int is_wait = 0;
+	/* cond1: Wait for Res. */
+	if (e->env_status == ENV_NOT_RUNNABLE) return 1;
+	/* cond2: hold at least one res. */
+	else if (e->res1 || e->res2) return 2;
+	/* cond3: not hold any res. */
+	else return 3;
+}
+
+int my_env_create() {
+	struct Env *e; 
+    /* Step 1: Use env_alloc to alloc a new env. */
+    env_alloc(&e, 0);
+	/* Step 2: Set process_hold = 0. */
+	e->res1 = e->res2 = 0;
+    LIST_INSERT_HEAD(env_sched_list, e, env_sched_link);
+	return e->env_id;
+}
+
 
 /* Overview:
  *  Initialize the kernel virtual memory layout for 'e'.
