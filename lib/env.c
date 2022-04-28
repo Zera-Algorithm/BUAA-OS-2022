@@ -169,8 +169,8 @@ int P(struct Env* e, int s) {
 			/* Request success. */
 			signal[s] -= 1;
 			/* Mark the Env as hold corresponding res. */
-			if (s == 1) e->res1 = 1;
-			else e->res2 = 1;
+			if (s == 1) e->res1 += 1;
+			else e->res2 += 1;
 		}
 		else {
 			e->env_status = ENV_NOT_RUNNABLE;
@@ -189,22 +189,22 @@ int V(struct Env *e, int s) {
 		if (s == 1) {
 			if (!LIST_EMPTY(&wait1)) {
 				temp = LIST_FIRST(&wait1);
-				temp->res1 = 1;
+				temp->res1 += 1;
 				temp->env_status = ENV_RUNNABLE;
 				LIST_REMOVE(temp, wait1_link);
 			}
 			signal[s] += 1;
-			e->res1 = 0;
+			e->res1 -= 1;
 		}
 		else {
 			if (!LIST_EMPTY(&wait2)) {
 				temp = LIST_FIRST(&wait2);
-				temp->res2 = 1;
+				temp->res2 += 1;
 				temp->env_status = ENV_RUNNABLE;
 				LIST_REMOVE(temp, wait2_link);
 			}
 			signal[s] += 1;
-			e->res2 = 0;
+			e->res2 -= 1;
 		}
 		return 0;
 	}
