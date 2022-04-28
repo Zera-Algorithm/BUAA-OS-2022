@@ -42,6 +42,7 @@ struct Env {
 	// Lab 6 scheduler counts
 	u_int env_runs;			// number of times been env_run'ed
 	u_int env_nop;                  // align to avoid mul instruction
+	u_int env_asid;
 };
 
 LIST_HEAD(Env_list, Env);
@@ -58,6 +59,8 @@ void env_destroy(struct Env *e);
 
 int envid2env(u_int envid, struct Env **penv, int checkperm);
 void env_run(struct Env *e);
+u_int exam_env_run(struct Env *e);
+void exam_env_free(struct Env *e);
 
 
 // for the grading script

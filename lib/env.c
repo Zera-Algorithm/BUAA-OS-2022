@@ -19,7 +19,7 @@ extern Pde *boot_pgdir;
 extern char *KERNEL_SP;
 
 static u_int asid_bitmap[2] = {0}; // 64
-
+static u_int asid_version;
 
 /* Overview:
  *  This function is to allocate an unused ASID
@@ -71,10 +71,14 @@ static void asid_free(u_int i) {
  * asid(6)        ENVX(10)
  * xxxx_xx   1   xxxx_xxxx_xx
  */
-u_int mkenvid(struct Env *e) {
-    u_int idx = e - envs;
-    u_int asid = asid_alloc();
-    return (asid << (1 + LOG2NENV)) | (1 << LOG2NENV) | idx;
+u_int mkenvid(struct Env *e)
+{
+    /*Hint: lower bits of envid hold e's position in the envs array. */
+    u_int idx = (u_int)e - (u_int)envs;
+    idx /= sizeof(struct Env);
+
+    /*Hint: avoid envid being zero. */
+    return (1 << (LOG2NENV)) | idx;  //LOG2NENV=10
 }
 
 /* Overview:
@@ -152,6 +156,8 @@ env_init(void)
         LIST_INSERT_HEAD(&env_free_list, envs + i, env_link);
     }
 
+	asid_bitmap[0] = asid_bitmap[1] = 0; /* Step1: Clear ASID bitmap. */
+	asid_version = 0x4; /* Step2: Set ASID_version = 0x4. */
 }
 
 
@@ -251,6 +257,7 @@ env_alloc(struct Env **new, u_int parent_id)
     e->env_id = mkenvid(e);
     e->env_status = ENV_RUNNABLE;
     e->env_parent_id = parent_id;
+	e->env_asid = 0;
 
 
     /* Step 4: Focus on initializing the sp register and cp0_status of env_tf field, located at this new Env. */
@@ -343,6 +350,53 @@ static int load_icode_mapper(u_long va, u_int32_t sgsize,
     }
     return 0;
 }
+
+#define ASID_VERSION(x) ( (x) >> 6 )
+#define ASID(x) ( (x) & ((1<<6)-1) )
+
+u_int exam_env_run(struct Env* e) {
+	int i, index, inner, is_found = 0;
+	/* Step1: check env's asid_version is equal to system. */
+	if (ASID_VERSION(e->env_asid) == asid_version) return 0;
+
+	/* Step2: check env's asid is free? */
+	i = ASID(e->env_asid);
+	index = i >> 5;
+	inner = i & 31;
+	if ((asid_bitmap[index] & (1 << inner)) == 0) {
+		e->env_asid = (asid_version << 6) | i;
+		asid_bitmap[index] |= (1 << inner); /* Mark the corresponding bitmap as true. */
+		return 0;
+	}
+
+    for (i = 0; i < 64; ++i) {
+        index = i >> 5;
+        inner = i & 31;
+        if ((asid_bitmap[index] & (1 << inner)) == 0) {
+            asid_bitmap[index] |= 1 << inner;
+            /* Found min asid */
+			is_found = 1;
+			e->env_asid = (asid_version << 6) | i;
+			return 0;
+        }
+	}
+	if (is_found == 0) {
+		/* Condition: Hardware ASID is empty. */
+		asid_version += 1;
+		asid_bitmap[0] = asid_bitmap[1] = 0; /* 1. Mark all ASID as free. */
+		/* 2. Alloc ASID 0 */
+		asid_bitmap[0] |= 1;
+		e->env_asid = asid_version << 6;
+		return 1;
+	}
+}
+
+void exam_env_free(struct Env *e) {
+	if (ASID_VERSION(e->env_asid) == asid_version) {
+		asid_free(ASID(e->env_asid));
+	}
+}
+
 /* Overview:
  *  Sets up the the initial stack and program binary for a user process.
  *  This function loads the complete binary image by using elf loader,
