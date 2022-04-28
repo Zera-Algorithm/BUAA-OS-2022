@@ -77,7 +77,7 @@ void bzero(void *b, size_t len)
 		*(int *)b = 0;
 		/* debug */
 		if (i == 0) {
-			printf("First Zero Write: %x\n", b);
+			// printf("First Zero Write: %x\n", b);
 		}
 		i = 1;
 		/* end debug */
