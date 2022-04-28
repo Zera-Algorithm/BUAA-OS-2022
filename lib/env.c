@@ -218,7 +218,7 @@ int get_status(struct Env* e) {
 	/* cond1: Wait for Res. */
 	if (e->env_status == ENV_NOT_RUNNABLE) return 1;
 	/* cond2: hold at least one res. */
-	else if (e->res1 || e->res2) return 2;
+	else if (e->res1 > 0 || e->res2 > 0) return 2;
 	/* cond3: not hold any res. */
 	else return 3;
 }
