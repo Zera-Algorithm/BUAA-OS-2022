@@ -169,10 +169,14 @@ int P(struct Env* e, int s) {
 			/* Request success. */
 			signal[s] -= 1;
 			/* Mark the Env as hold corresponding res. */
-			if (s == 1) e->res1 = 1;
-			else e->res2 = 1;
+			if (s == 1) e->res1 += 1;
+			else e->res2 += 1;
 		}
 		else {
+			/* TODO: wait or not? */
+			if (s == 1 && e->res1 > 0) return 0;
+			else if (s == 2 && e->res2 > 0) return 0;
+
 			e->env_status = ENV_NOT_RUNNABLE;
 			/* INSERT current Env to the wait Queue. */
 			if(s == 1) LIST_INSERT_TAIL(&wait1, e, wait1_link);
