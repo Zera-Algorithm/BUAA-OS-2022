@@ -173,9 +173,7 @@ int P(struct Env* e, int s) {
 			else e->res2 += 1;
 		}
 		else {
-			/* TODO: wait or not? */
-			if (s == 1 && e->res1 > 0) return 0;
-			else if (s == 2 && e->res2 > 0) return 0;
+			/* TODO: wait or not? */  //I think Env should wait.
 
 			e->env_status = ENV_NOT_RUNNABLE;
 			/* INSERT current Env to the wait Queue. */
