@@ -13,6 +13,8 @@ void
 kclock_init(void)
 {
 	// hint: use set_timer()
-	
+	/* Step1: Set timer frequency. */
+	set_timer();
+
 }
 
