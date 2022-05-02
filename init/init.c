@@ -22,15 +22,11 @@ void mips_init()
 	/*** exercise 3.9 ***/
 	/*you may want to create process by MACRO, please read env.h file, in which you will find it. this MACRO is very
 	 * interesting, have fun please*/
-	// printf("Now CREATE process...\n");
 	ENV_CREATE_PRIORITY(user_A, 2);
 	ENV_CREATE_PRIORITY(user_B, 1);
 
-	printf("[trap_init] Begin init trap!\n");
 	trap_init();
-	printf("[kclock_init] Begin init kclock!\n");
 	kclock_init();
-	printf("End init Kclock!!! ~~~~~~~~~~~\n");
 	panic("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
 	while(1);
 	panic("init.c:\tend of mips_init() reached!");
