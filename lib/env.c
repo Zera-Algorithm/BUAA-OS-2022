@@ -515,7 +515,8 @@ env_run(struct Env *e)
     /* Hint: if there is an environment running, 
      *   you should switch the context and save the registers. 
      *   You can imitate env_destroy() 's behaviors.*/
-    if (curenv == NULL) { // NO PROCESS RUNNING, SKIP!
+
+    if (curenv != NULL) { // HAVE PROCESS RUNNING, SAVE CONTEXT REGISTERS!
         bcopy((void *)TIMESTACK - sizeof(struct Trapframe),
             (void *)(&(curenv->env_tf)),
             sizeof(struct Trapframe));
@@ -526,7 +527,7 @@ env_run(struct Env *e)
     curenv = e;
 
     /* Step 3: Use lcontext() to switch to its address space. */
-    lcontext(e->env_cr3);
+    lcontext(e->env_pgdir); // Attention: It's Kernel Virtual Address of the page dictionary.
 
     /* Step 4: Use env_pop_tf() to restore the environment's
      *   environment   registers and return to user mode.
@@ -534,6 +535,7 @@ env_run(struct Env *e)
      * Hint: You should use GET_ENV_ASID there. Think why?
      *   (read <see mips run linux>, page 135-144)
      */
+	// printf("successfully start a process.\n");
     env_pop_tf(&(e->env_tf), GET_ENV_ASID(e->env_id));
 }
 

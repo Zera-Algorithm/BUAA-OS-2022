@@ -26,9 +26,11 @@ void mips_init()
 	ENV_CREATE_PRIORITY(user_A, 2);
 	ENV_CREATE_PRIORITY(user_B, 1);
 
-
-	// trap_init();
-	// kclock_init();
+	printf("[trap_init] Begin init trap!\n");
+	trap_init();
+	printf("[kclock_init] Begin init kclock!\n");
+	kclock_init();
+	printf("End init Kclock!!! ~~~~~~~~~~~\n");
 	panic("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
 	while(1);
 	panic("init.c:\tend of mips_init() reached!");
