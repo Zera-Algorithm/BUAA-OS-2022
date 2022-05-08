@@ -64,6 +64,13 @@ u_int sys_getenvid(void)
 /*** exercise 4.6 ***/
 void sys_yield(void)
 {
+	/* Step1: copy from KERNAL_SP to TIMESTACK */
+	bcopy((void *)KERNEL_SP - sizeof(Trapframe),
+		  (void *)TIMESTACK - sizeof(Trapframe), 
+		  sizeof(Trapframe));
+
+	/* Step2: yield right to execute. */
+	sched_yield();
 }
 
 /* Overview:
@@ -143,7 +150,28 @@ int sys_mem_alloc(int sysno, u_int envid, u_int va, u_int perm)
 	struct Page *ppage;
 	int ret;
 	ret = 0;
+	/* Step1: Round va to the multiples of BY2PG. */
+	va = ROUNDDOWN(va, BY2PG);
 
+	/* Step2: Check whether VA is below UTOP. */
+	if (va >= UTOP) return -E_INVAL;
+
+	/* Step3: Check perm. */
+	if ((perm & PTE_V) == 0 || (perm & PTE_COW) != 0) return -E_INVAL;
+
+	/* Step4: Assign env to the env of envid. */
+	if ((ret = envid2env(envid, &env, 0)) < 0) {
+		// ERROR when get env.
+		return ret;
+	}
+
+	/* Step5: Alloc a page. */
+	if ((ret = page_alloc(&ppage)) < 0)
+		return ret;
+
+	/* Step6: insert the page into user address space. */
+	if ((ret = page_insert(env->env_pgdir, ppage, va, perm)) < 0)
+		return ret;
 }
 
 /* Overview:
@@ -168,14 +196,49 @@ int sys_mem_map(int sysno, u_int srcid, u_int srcva, u_int dstid, u_int dstva,
 	struct Env *srcenv;
 	struct Env *dstenv;
 	struct Page *ppage;
-	Pte *ppte;
+	Pte *ppte, *ppte_M;
 
 	ppage = NULL;
 	ret = 0;
 	round_srcva = ROUNDDOWN(srcva, BY2PG);
 	round_dstva = ROUNDDOWN(dstva, BY2PG);
 
-    //your code here
+    // your code here
+	/* Step1: Check va position. */
+	if (round_srcva >= UTOP || round_dstva >= UTOP) {
+		return -E_INVAL;
+	}
+
+	/* Step3: Check perm. */
+	if ((perm & PTE_V) == 0 || (perm & PTE_COW) != 0)
+		return -E_INVAL;
+
+	/* Step4: Assign env to the env of envid. */
+	if ((ret = envid2env(src, &srcenv, 0)) < 0) {
+		// ERROR when get env.
+		return ret;
+	}
+
+	if ((ret = envid2env(dst, &dstenv, 0)) < 0) {
+		return ret;
+	}
+
+	/* Step5: query physical address of srcva. */
+	if ((ppage = page_lookup(srcenv->env_pgdir, round_srcva, &ppte)) == NULL) {
+		/* srcva don't match any physical memory space. */
+		return -E_BAD_ENV;
+	}
+
+	if ((*ppte & PTE_R) == 0 && (perm & PTE_R) != 0) {
+		// ppte read-only, but perm allows write. this will cause error.
+		return -E_INVAL;
+	}
+
+	/* Step6: Map srcva's physical address to dstva. */
+	if((ret = pgdir_walk(dstenv->env_pgdir, round_dstva, 1, &ppte_M)) < 0) {
+		return ret;
+	}
+	*ppte_M = PTE_ADDR(*ppte) | perm;
 
 	return ret;
 }
@@ -193,8 +256,21 @@ int sys_mem_map(int sysno, u_int srcid, u_int srcva, u_int dstid, u_int dstva,
 int sys_mem_unmap(int sysno, u_int envid, u_int va)
 {
 	// Your code here.
-	int ret;
+	int ret = 0;
 	struct Env *env;
+
+	/* Step1: Check va position. */
+	va = ROUNDDOWN(va, BY2PG);
+	if (va >= UTOP) {
+		return -E_INVAL;
+	}
+
+	if ((ret = envid2env(envid, &env, 0)) < 0) {
+		// ERROR when get env.
+		return ret;
+	}
+
+	page_remove(env->env_pgdir, va);
 
 	return ret;
 	//	panic("sys_mem_unmap not implemented");
