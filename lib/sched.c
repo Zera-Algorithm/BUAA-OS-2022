@@ -31,7 +31,7 @@ void sched_yield(void)
      *  functions or macros below may be used (not all):
      *  LIST_INSERT_TAIL, LIST_REMOVE, LIST_FIRST, LIST_EMPTY
      */
-	/* Step1: count == 0 indicates that time is up, change executing env.
+	/* Step1: count == 0 indicates that time is up, change executing env.*/
     if (count == 0) {
 		if (e != NULL) {
 			// Current env's time is over, change to another.
@@ -45,7 +45,7 @@ void sched_yield(void)
 				// printf("count = %d(from priority)\n", count);
                 count -= 1;
                 env_run(e);
-				break;
+				/* It will never return. */
             }
         }
         /* Step3: ENV_RUNNABLE NOT HAVE, change list. */
@@ -58,7 +58,6 @@ void sched_yield(void)
 				// printf("count = %d(from priority)\n", count);
                 count -= 1;
                 env_run(e);
-				break;
             }
         }
     }
