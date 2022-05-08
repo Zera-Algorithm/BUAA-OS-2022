@@ -65,9 +65,9 @@ u_int sys_getenvid(void)
 void sys_yield(void)
 {
 	/* Step1: copy from KERNAL_SP to TIMESTACK */
-	bcopy((void *)KERNEL_SP - sizeof(Trapframe),
-		  (void *)TIMESTACK - sizeof(Trapframe), 
-		  sizeof(Trapframe));
+	bcopy((void *)KERNEL_SP - sizeof(struct Trapframe),
+		  (void *)TIMESTACK - sizeof(struct Trapframe), 
+		  sizeof(struct Trapframe));
 
 	/* Step2: yield right to execute. */
 	sched_yield();
@@ -214,12 +214,12 @@ int sys_mem_map(int sysno, u_int srcid, u_int srcva, u_int dstid, u_int dstva,
 		return -E_INVAL;
 
 	/* Step4: Assign env to the env of envid. */
-	if ((ret = envid2env(src, &srcenv, 0)) < 0) {
+	if ((ret = envid2env(srcid, &srcenv, 0)) < 0) {
 		// ERROR when get env.
 		return ret;
 	}
 
-	if ((ret = envid2env(dst, &dstenv, 0)) < 0) {
+	if ((ret = envid2env(dstid, &dstenv, 0)) < 0) {
 		return ret;
 	}
 
