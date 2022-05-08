@@ -372,6 +372,10 @@ void sys_panic(int sysno, char *msg)
 /*** exercise 4.7 ***/
 void sys_ipc_recv(int sysno, u_int dstva)
 {
+	curenv->env_ipc_recving = 1; // prepare to recv data.
+	curenv->env_ipc_dstva = dstva;
+	curenv->env_status = ENV_NOT_RUNNABLE;
+	sys_yield(); // yield the right to execute
 }
 
 /* Overview:
@@ -399,6 +403,19 @@ int sys_ipc_can_send(int sysno, u_int envid, u_int value, u_int srcva,
 	int r;
 	struct Env *e;
 	struct Page *p;
+	if ((r = envid2env(envid, &e, 0)) < 0) {
+		return r;
+	}
+	if (e->env_ipc_recving == 0) {
+		return -E_IPC_NOT_RECV;
+	}
+	e->env_ipc_recving = 0;
+	e->env_ipc_from = curenv->env_id;
+	e->env_ipc_value = value;
+	
+	if ((r = sys_mem_map(sysno, curenv->env_id, srcva, e->env_id, e->env_ipc_dstva, perm)) < 0)
+		return r;
 
+	e->env_status = ENV_RUNNABLE;
 	return 0;
 }

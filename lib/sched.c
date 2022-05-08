@@ -31,19 +31,27 @@ void sched_yield(void)
      *  functions or macros below may be used (not all):
      *  LIST_INSERT_TAIL, LIST_REMOVE, LIST_FIRST, LIST_EMPTY
      */
-	// printf("begin change env... count = %d\n", count);
+	/* Step1: count == 0 indicates that time is up, change executing env.
     if (count == 0) {
-		// printf("Step1\n");
 		if (e != NULL) {
 			// Current env's time is over, change to another.
         	LIST_REMOVE(e, env_sched_link); //Step1: delete e from current sched list.
         	LIST_INSERT_TAIL(&env_sched_list[1 - point], e, env_sched_link); // Step2:insert e into another sched list.
 		}
-		// printf("Step2\n");
-        if (LIST_EMPTY(&env_sched_list[point])) {
-            point = 1 - point;
+		/* Step2: searching for a runnable thread. if not exists, change to another list. */
+        LIST_FOREACH(e, &env_sched_list[point], env_sched_link) {
+            if (e->env_status == ENV_RUNNABLE) {
+                count = e->env_pri;
+				// printf("count = %d(from priority)\n", count);
+                count -= 1;
+                env_run(e);
+				break;
+            }
         }
-		// printf("Step3\n");
+        /* Step3: ENV_RUNNABLE NOT HAVE, change list. */
+        point = 1 - point;
+
+        /* Step4: Search another thread. */
         LIST_FOREACH(e, &env_sched_list[point], env_sched_link) {
             if (e->env_status == ENV_RUNNABLE) {
                 count = e->env_pri;
