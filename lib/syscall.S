@@ -13,7 +13,8 @@ NESTED(handle_sys,TF_SIZE, sp)
 
     // TODO: Fetch EPC from Trapframe, calculate a proper value and store it back to trapframe.
     lw t0, TF_EPC(sp) // load EPC value
-    sw t0, TF_PC(sp) // store EPC into PC register
+	addu t0, t0, 4
+    sw t0, TF_EPC(sp) // store EPC back
 
     // TODO: Copy the syscall number into $a0.
     lw a0, TF_REG4(sp)
@@ -43,6 +44,7 @@ NESTED(handle_sys,TF_SIZE, sp)
 
     // TODO: Resume current kernel stack
     addu    sp, 24
+
     sw      v0, TF_REG2(sp)             // Store return value of function sys_* (in $v0) into trapframe
 
     j       ret_from_exception          // Return from exeception
