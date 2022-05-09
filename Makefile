@@ -33,6 +33,9 @@ vmlinux: $(modules)
 run: all
 	/OSLAB/gxemul -E testmips -C R3000 -M 64 $(vmlinux_elf)
 
+debug: all
+	/OSLAB/gxemul -E testmips -C R3000 -M 64 $(vmlinux_elf) -V
+
 $(modules):
 	$(MAKE) --directory=$@
 
