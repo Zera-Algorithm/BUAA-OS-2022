@@ -307,7 +307,7 @@ int sys_env_alloc(void)
 
 	bcopy((void *)(&(curenv->env_tf)),
 		  (void *)(&(e->env_tf)), 
-		  sizeof(Trapframe));
+		  sizeof(struct Trapframe));
 
 
 	

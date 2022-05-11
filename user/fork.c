@@ -85,7 +85,7 @@ pgfault(u_int va)
 	u_int tmp = (u_int)0x7f3fe000;
 	int r;
 	u_int pn = (va >> 12) & 0xfffff;
-	u_int perm = (vpt[pn] & 0xfff);
+	u_int perm = (((u_int)(vpt[pn])) & 0xfff);
 	
 	if ((perm & PTE_COW) == 0) {
 		user_panic("Error: PAGE FAULT Happens when PTE_COW is not set!!");
@@ -93,7 +93,7 @@ pgfault(u_int va)
 	// 分配一块空间到临时位置
 	syscall_mem_alloc(env->env_id, tmp, perm ^ PTE_COW);
 	// 复制va内容到临时空间
-	bcopy((void *)(va & 0xfffff000), (void *)tmp, BY2PG);
+	user_bcopy((void *)(va & 0xfffff000), (void *)tmp, BY2PG);
 	vpt[pn] = vpt[tmp >> 12]; // 复制映射地址和权限
 	syscall_mem_unmap(env->env_id, tmp); // 解除临时位置的映射
 
@@ -138,8 +138,8 @@ duppage(u_int envid, u_int pn)
 		syscall_mem_map(env->env_id, addr, envid, addr, item & 0xfff);
 	}
 	else if ((item & PTE_R) != 0) {
-		vpt[pn] = (vpt[pn] | PTE_COW);
-		syscall_mem_map(env->env_id, addr, envid, addr, vpt[pn] & 0xfff);
+		vpt[pn] = (((u_int)(vpt[pn])) | PTE_COW);
+		syscall_mem_map(env->env_id, addr, envid, addr, ((u_int)(vpt[pn])) & 0xfff);
 	}
 	//	user_panic("duppage not implemented");
 }
@@ -184,7 +184,7 @@ fork(void)
 		syscall_set_env_status(newenvid, ENV_RUNNABLE);
 	}
 
-	return ret;
+	return newenvid;
 }
 
 // Challenge!
