@@ -119,8 +119,12 @@ int sys_set_pgfault_handler(int sysno, u_int envid, u_int func, u_int xstacktop)
 	// Your code here.
 	struct Env *env;
 	int ret;
-
-
+	if ((ret = envid2env(envid, &env, 0)) < 0) {
+		return ret;
+	}
+	env->env_pgfault_handler = func;
+	env->env_xstacktop = xstacktop;
+	
 	return 0;
 	//	panic("sys_set_pgfault_handler not implemented");
 }
@@ -210,7 +214,8 @@ int sys_mem_map(int sysno, u_int srcid, u_int srcva, u_int dstid, u_int dstva,
 	}
 
 	/* Step3: Check perm. */
-	if ((perm & PTE_V) == 0 || (perm & PTE_COW) != 0)
+	// To allow set PTE_COW, delete " || (perm & PTE_COW) != 0"
+	if ((perm & PTE_V) == 0)
 		return -E_INVAL;
 
 	/* Step4: Assign env to the env of envid. */
@@ -295,6 +300,24 @@ int sys_env_alloc(void)
 	int r;
 	struct Env *e;
 
+	/* Step1: Allocate an env and set appropriate value to it. */
+	/* Values include: envid, status, parent id, some value of Trapframe */
+	/* 也执行env_setup_vm函数，分配了页目录，并映射了一些必要的空间。*/
+	env_alloc(&e, curenv->env_id);
+
+	bcopy((void *)(&(curenv->env_tf)),
+		  (void *)(&(e->env_tf)), 
+		  sizeof(Trapframe));
+
+
+	
+	e->env_tf.pc = e->env_tf.cp0_epc;
+
+	e->env_tf.regs[2] = 0; // v0: indicates that we returns 0.
+
+	e->env_status = ENV_NOT_RUNNABLE;
+
+	e->env_pri = curenv->env_pri;
 
 	return e->env_id;
 	//	panic("sys_env_alloc not implemented");
@@ -318,7 +341,17 @@ int sys_set_env_status(int sysno, u_int envid, u_int status)
 	// Your code here.
 	struct Env *env;
 	int ret;
-
+	if ((ret = envid2env(envid, &env, 0)) < 0) {
+		return ret;
+	}
+	// 如果不是三种状态之一
+	if (env->env_status != ENV_RUNNABLE && env->env_status != ENV_NOT_RUNNABLE && env->env_status != ENV_FREE) {
+		return -E_INVAL;
+	}
+	if (env->env_status == ENV_NOT_RUNNABLE && status == ENV_RUNNABLE) {
+		LIST_INSERT_HEAD(env_sched_list, env, env_sched_link);
+	}
+	env->env_status = status;
 	return 0;
 	//	panic("sys_env_set_status not implemented");
 }

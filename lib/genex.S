@@ -21,7 +21,7 @@ nop
 	SAVE_ALL				
 	__build_clear_\clear
 	.set	at
-	move	a0, sp
+	move	a0, sp // 第一个参数是指向Trapframe的指针。
 	jal	\handler
 	nop
 	j	ret_from_exception

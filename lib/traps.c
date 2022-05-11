@@ -50,6 +50,7 @@ page_fault_handler(struct Trapframe *tf)
             bcopy(&PgTrapFrame,(void *)curenv->env_xstacktop - sizeof(struct  Trapframe),sizeof(struct Trapframe));
         }
     // TODO: Set EPC to a proper value in the trapframe
-
+    // 内核的页异常处理函数直接将控制权交给用户空间的页异常处理函数。
+    tf->cp0_epc = curenv->env_pgfault_handler;
     return;
 }

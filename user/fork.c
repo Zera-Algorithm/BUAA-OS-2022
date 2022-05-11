@@ -82,9 +82,23 @@ void user_bzero(void *v, u_int n)
 static void
 pgfault(u_int va)
 {
-	u_int *tmp;
-	//	writef("fork.c:pgfault():\t va:%x\n",va);
+	u_int tmp = (u_int)0x7f3fe000;
+	int r;
+	u_int pn = (va >> 12) & 0xfffff;
+	u_int perm = (vpt[pn] & 0xfff);
+	
+	if ((perm & PTE_COW) == 0) {
+		user_panic("Error: PAGE FAULT Happens when PTE_COW is not set!!");
+	}
+	// 分配一块空间到临时位置
+	syscall_mem_alloc(env->env_id, tmp, perm ^ PTE_COW);
+	// 复制va内容到临时空间
+	bcopy((void *)(va & 0xfffff000), (void *)tmp, BY2PG);
+	vpt[pn] = vpt[tmp >> 12]; // 复制映射地址和权限
+	syscall_mem_unmap(env->env_id, tmp); // 解除临时位置的映射
 
+	//	writef("fork.c:pgfault():\t va:%x\n",va);
+	
 	//map the new page at a temporary place
 
 	//copy the content
@@ -117,7 +131,16 @@ duppage(u_int envid, u_int pn)
 {
 	u_int addr;
 	u_int perm;
-
+	Pte item;
+	addr = pn << 2;
+	item = vpt[pn];
+	if ((item & PTE_R) == 0 || (item & PTE_COW) != 0 || (item & PTE_LIBRARY) != 0) {
+		syscall_mem_map(env->env_id, addr, envid, addr, item & 0xfff);
+	}
+	else if ((item & PTE_R) != 0) {
+		vpt[pn] = (vpt[pn] | PTE_COW);
+		syscall_mem_map(env->env_id, addr, envid, addr, vpt[pn] & 0xfff);
+	}
 	//	user_panic("duppage not implemented");
 }
 
@@ -139,15 +162,29 @@ fork(void)
 	u_int newenvid;
 	extern struct Env *envs;
 	extern struct Env *env;
-	u_int i;
+	u_int i, addr;
 
-
+	set_pgfault_handler(__asm_pgfault_handler);
 	//The parent installs pgfault using set_pgfault_handler
+	newenvid = syscall_env_alloc();
 
 	//alloc a new alloc
+	/* If this is child process. */
+	if (newenvid == 0) {
+		newenvid = syscall_getenvid();
+		i = (newenvid & ((1<<10)-1));
+		env = envs + i;
+	}
+	else { // parent process
+		for (addr = 0; addr < USTACKTOP; addr += BY2PG) {
+			duppage(newenvid, addr >> 12);
+		}
+		syscall_mem_alloc(newenvid, UXSTACKTOP-BY2PG, PTE_R | PTE_V);
+		syscall_set_pgfault_handler(newenvid, __asm_pgfault_handler, UXSTACKTOP);
+		syscall_set_env_status(newenvid, ENV_RUNNABLE);
+	}
 
-
-	return newenvid;
+	return ret;
 }
 
 // Challenge!

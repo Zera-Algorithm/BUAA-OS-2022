@@ -25,11 +25,11 @@ pages:
 
 	.globl vpt
 vpt:
-	.word UVPT
+	.word UVPT // 页表地址
 
 	.globl vpd
 vpd:
-	.word (UVPT+(UVPT>>12)*4)
+	.word (UVPT+(UVPT>>12)*4) // 页目录地址
 
 	.globl __pgfault_handler
 	__pgfault_handler:
@@ -57,7 +57,7 @@ __asm_pgfault_handler:
 	// save the caller-save registers
 	//	(your code here)
 //1: j 1b
-nop
+	nop
 	lw	a0, TF_BADVADDR(sp)
 	//sw	t0, (sp)
 	//subu	sp,16
