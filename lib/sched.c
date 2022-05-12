@@ -43,12 +43,32 @@ void sched_yield(void)
 			else
 				LIST_INSERT_TAIL(&env_sched_list[(point+2)%3], e, env_sched_link);
 		}
-		// printf("Step2\n");
-        if (LIST_EMPTY(&env_sched_list[point])) {
-            point = (point+1)%3;
-        }
 		// printf("Step3\n");
         LIST_FOREACH(e, &env_sched_list[point], env_sched_link) {
+            if (e->env_status == ENV_RUNNABLE) {
+				if (point == 0) count = e->env_pri;
+				else if (point == 1) count = e->env_pri * 2;
+				else if (point == 2) count = e->env_pri * 4;
+				// printf("count = %d(from priority)\n", count);
+                count -= 1;
+                env_run(e);
+				break;
+            }
+        }
+		point = (point+1)%3; // change queue.
+		LIST_FOREACH(e, &env_sched_list[point], env_sched_link) {
+            if (e->env_status == ENV_RUNNABLE) {
+				if (point == 0) count = e->env_pri;
+				else if (point == 1) count = e->env_pri * 2;
+				else if (point == 2) count = e->env_pri * 4;
+				// printf("count = %d(from priority)\n", count);
+                count -= 1;
+                env_run(e);
+				break;
+            }
+        }
+	    point = (point+1)%3; // change queue.
+		LIST_FOREACH(e, &env_sched_list[point], env_sched_link) {
             if (e->env_status == ENV_RUNNABLE) {
 				if (point == 0) count = e->env_pri;
 				else if (point == 1) count = e->env_pri * 2;
