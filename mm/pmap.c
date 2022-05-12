@@ -199,7 +199,6 @@ Use `LIST_INSERT_HEAD` to insert something to list.*/
 void page_init(void)
 {
 	u_long i;
-	struct Page *p;
 	/* Step 1: Initialize page_free_list. */
 	/* Hint: Use macro `LIST_INIT` defined in include/queue.h. */
 	LIST_INIT(&page_free_list);
@@ -214,10 +213,8 @@ void page_init(void)
 	}
 
 	/* Set TIMESTACK Page as used. */
-	p = pa2page(PADDR(TIMESTACK - BY2PG));
+	pa2page(PADDR(TIMESTACK - BY2PG))->pp_ref = 1;
 	/* TIMESTACK is the stack top of the temp registers. */
-	p->pp_ref = 1;
-	LIST_REMOVE(p, pp_link);
 
 	/* Step 4: Mark the other memory as free. */
 	for (; i < maxpa; i += BY2PG) {
