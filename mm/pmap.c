@@ -213,7 +213,7 @@ void page_init(void)
 	}
 
 	/* Set TIMESTACK Page as used. */
-	pa2page(PADDR(TIMESTACK - BY2PG))->pp_ref = 1;
+	pa2page(PADDR(TIMESTACK))->pp_ref = 1;
 	/* TIMESTACK is the stack top of the temp registers. */
 
 	/* Step 4: Mark the other memory as free. */
