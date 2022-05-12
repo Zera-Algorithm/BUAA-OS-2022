@@ -83,10 +83,19 @@ LEAF(do_reserved)
 END(do_reserved)
 
 LEAF(do_AdEL)
-	mfc0 t0, CP0_EPC // load exception epc
+	// consider delayed branch
+	mfc0 k0, CP0_CAUSE
+	mfc0 t0, CP0_EPC // load exception EPC
+	
+	and k0, 0x80000000
+	beqz k0, NORMAL_EPC
+	nop
+	addu t0, t0, 4
+
+NORMAL_EPC:
 	lw t1, 0(t0) // load exception Instr
 	srl t2, t1, 26 // get opcode: t2 = opcode
-	
+
 	lui k0, 0
 	ori k0, 0x23 //lw
 
