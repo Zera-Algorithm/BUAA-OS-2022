@@ -82,6 +82,41 @@ timer_irq:
 LEAF(do_reserved)
 END(do_reserved)
 
+LEAF(do_AdEL)
+	mfc0 t0, CP0_EPC // load exception epc
+	lw t1, 0(t0) // load exception Instr
+	srl t2, t1, 26 // get opcode: t2 = opcode
+	
+	lui k0, 0
+	ori k0, 0x23 //lw
+
+	beq t2, k0, I_LW
+	nop
+
+	lui k0, 0
+	ori k0, 0x21
+
+	beq t2, k0, I_LH
+	nop
+	j EXIT_AdEL
+	nop
+
+I_LW:
+	and t1, 0xf7ffffff
+	sw t1, 0(t0)
+	j EXIT_AdEL
+	nop
+
+I_LH:
+	and t1, 0xfbffffff
+	sw t1, 0(t0)
+
+EXIT_AdEL:
+	jr ra
+	nop
+
+END(do_AdEL)
+
 	.extern tlbra
 .set	noreorder
 NESTED(do_refill,0 , sp)
@@ -157,3 +192,4 @@ END(do_refill)
 BUILD_HANDLER reserved do_reserved cli
 BUILD_HANDLER tlb	do_refill	cli
 BUILD_HANDLER mod	page_fault_handler cli
+BUILD_HANDLER AdEL do_AdEL cli
