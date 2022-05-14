@@ -95,16 +95,20 @@ void trap_init();
 #define TF_REG31	((TF_REG30) + 4)
 
 #define TF_STATUS	((TF_REG31) + 4)
+// 128
 
 #define TF_HI		((TF_STATUS) + 4)
 #define TF_LO		((TF_HI) + 4)
 
 #define TF_BADVADDR	((TF_LO)+4)
 #define TF_CAUSE	((TF_BADVADDR) + 4)
-#define TF_EPC		((TF_CAUSE) + 4)
+// 144
+#define TF_EPC		((TF_CAUSE) + 4) 
+// 148 up
 #define TF_PC		((TF_EPC) + 4)
 /*
  * Size of stack frame, word/double word alignment
  */
 #define TF_SIZE		((TF_PC)+4)
+// 156
 #endif /* _TRAP_H_ */
