@@ -132,14 +132,14 @@ duppage(u_int envid, u_int pn)
 	u_int addr;
 	u_int perm;
 	Pte item;
-	addr = pn << 2;
-	item = vpt[pn];
+	addr = (pn << 12);
+	item = (*vpt)[pn];
 	if ((item & PTE_R) == 0 || (item & PTE_COW) != 0 || (item & PTE_LIBRARY) != 0) {
 		syscall_mem_map(env->env_id, addr, envid, addr, item & 0xfff);
 	}
 	else if ((item & PTE_R) != 0) {
-		vpt[pn] = (((u_int)(vpt[pn])) | PTE_COW);
-		syscall_mem_map(env->env_id, addr, envid, addr, ((u_int)(vpt[pn])) & 0xfff);
+		(*vpt)[pn] = (item | PTE_COW);
+		syscall_mem_map(env->env_id, addr, envid, addr, item & 0xfff);
 	}
 	//	user_panic("duppage not implemented");
 }
@@ -167,26 +167,36 @@ fork(void)
 	set_pgfault_handler(__asm_pgfault_handler);
 	//The parent installs pgfault using set_pgfault_handler
 
-	write("It's user space's fork!\n");
+	writef("It's user space's fork!\n");
 	newenvid = syscall_env_alloc();
-	write("Finish user env_alloc syscall.\n");
+	writef("Finish user env_alloc syscall.\n");
+	writef("My envid = %d, child is %d.\n", syscall_getenvid(), newenvid);
+	// user_panic("^^^^^^^^^");
 
 	//alloc a new alloc
 	/* If this is child process. */
 	if (newenvid == 0) {
+		writef("This is child space.\n");
 		/* child process: set env to its PCB */
 		newenvid = syscall_getenvid();
 		i = (newenvid & ((1<<10)-1));
 		env = envs + i;
+		writef("child process finish fork. newenvid = %d.\n", newenvid);
 	}
 	else { // parent process
 		// Copy COW Memory.
+		writef("duppaging...\n");
 		for (addr = 0; addr < USTACKTOP; addr += BY2PG) {
+			if (addr % (1024*BY2PG) == 0)
+				writef("page addr = %08x\n", addr);
 			duppage(newenvid, addr >> 12);
 		}
+		writef("malloc for UXSTACK...\n");
 		syscall_mem_alloc(newenvid, UXSTACKTOP-BY2PG, PTE_R | PTE_V);
+		writef("set Handler...\n");
 		syscall_set_pgfault_handler(newenvid, __asm_pgfault_handler, UXSTACKTOP);
 		syscall_set_env_status(newenvid, ENV_RUNNABLE);
+		writef("finish father space.\n");
 	}
 
 	return newenvid;
