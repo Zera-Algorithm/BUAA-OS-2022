@@ -663,11 +663,12 @@ void page_check(void)
 	printf("page_check() succeeded!\n");
 }
 
-void pageout(int va, int context)
+void pageout(int va, int context, struct Trapframe *tf)
 {
 	u_long r;
 	struct Page *p = NULL;
 
+	printf("EPC = %8x\n", tf->cp0_epc);
 	if (context < 0x80000000) {
 		panic("tlb refill and alloc error!");
 	}
@@ -685,7 +686,7 @@ void pageout(int va, int context)
 	}
 
 	p->pp_ref++;
-
+	
 	page_insert((Pde *)context, p, VA2PFN(va), PTE_R);
 	printf("pageout:\t@@@___0x%x___@@@  ins a page \n", va);
 }

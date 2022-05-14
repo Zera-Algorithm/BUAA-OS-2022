@@ -135,6 +135,7 @@ NOPAGE:
 nop
 			mfc0		a0,CP0_BADVADDR
 			lw		a1,mCONTEXT
+			move	a2, sp
 			nop
 				
 			sw	 	ra,tlbra

@@ -304,11 +304,13 @@ int sys_env_alloc(void)
 	/* Values include: envid, status, parent id, some value of Trapframe */
 	/* 也执行env_setup_vm函数，分配了页目录，并映射了一些必要的空间。*/
 	env_alloc(&e, curenv->env_id);
-
+	
+	// error.
 	bcopy((void *)(&(curenv->env_tf)),
 		  (void *)(&(e->env_tf)), 
 		  sizeof(struct Trapframe));
 
+	printf("Now curenvID = %d, EPC = %x, childID = %d, child_epc = %x\n", curenv->env_id, curenv->env_tf.cp0_epc, e->env_id, e->env_tf.cp0_epc);
 
 	
 	e->env_tf.pc = e->env_tf.cp0_epc;
@@ -344,10 +346,11 @@ int sys_set_env_status(int sysno, u_int envid, u_int status)
 	if ((ret = envid2env(envid, &env, 0)) < 0) {
 		return ret;
 	}
-	// 如果不是三种状态之一
+	// if is not in the following 3 states: RUNNABLE, NOT_RUNNABLE, FREE
 	if (env->env_status != ENV_RUNNABLE && env->env_status != ENV_NOT_RUNNABLE && env->env_status != ENV_FREE) {
 		return -E_INVAL;
 	}
+	printf("sys_set_env_status: envid = %d, env_pc = %x\n", envid, env->env_tf.pc);
 	if (env->env_status == ENV_NOT_RUNNABLE && status == ENV_RUNNABLE) {
 		LIST_INSERT_HEAD(env_sched_list, env, env_sched_link);
 	}
