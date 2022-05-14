@@ -90,12 +90,12 @@ pgfault(u_int va)
 	if ((perm & PTE_COW) == 0) {
 		user_panic("Error: PAGE FAULT Happens when PTE_COW is not set!!");
 	}
-	// 分配一块空间到临时位置
+	// alloc a page to tmp address.
 	syscall_mem_alloc(env->env_id, tmp, perm ^ PTE_COW);
-	// 复制va内容到临时空间
+	// copy content of va to tmp address.
 	user_bcopy((void *)(va & 0xfffff000), (void *)tmp, BY2PG);
-	vpt[pn] = vpt[tmp >> 12]; // 复制映射地址和权限
-	syscall_mem_unmap(env->env_id, tmp); // 解除临时位置的映射
+	vpt[pn] = vpt[tmp >> 12]; // copy perm and PA
+	syscall_mem_unmap(env->env_id, tmp); // release the tmp address Mapping.
 
 	//	writef("fork.c:pgfault():\t va:%x\n",va);
 	
@@ -166,16 +166,21 @@ fork(void)
 
 	set_pgfault_handler(__asm_pgfault_handler);
 	//The parent installs pgfault using set_pgfault_handler
+
+	write("It's user space's fork!\n");
 	newenvid = syscall_env_alloc();
+	write("Finish user env_alloc syscall.\n");
 
 	//alloc a new alloc
 	/* If this is child process. */
 	if (newenvid == 0) {
+		/* child process: set env to its PCB */
 		newenvid = syscall_getenvid();
 		i = (newenvid & ((1<<10)-1));
 		env = envs + i;
 	}
 	else { // parent process
+		// Copy COW Memory.
 		for (addr = 0; addr < USTACKTOP; addr += BY2PG) {
 			duppage(newenvid, addr >> 12);
 		}
