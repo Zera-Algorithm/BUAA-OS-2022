@@ -25,7 +25,7 @@ NESTED(handle_sys,TF_SIZE, sp)
     addu    t1, t1, t0                  // t1 <- table entry of specific syscall
     lw      t2, 0(t1)                   // t2 <- function entry of specific syscall
 
-    lw      t0, TF_REG29(sp)            // t0 <- user's stack pointer
+    lw      t0, TF_REG29(sp)            // t0 <- user`s stack pointer
     lw      t3, 16(t0)                  // t3 <- the 5th argument of msyscall
     lw      t4, 20(t0)                  // t4 <- the 6th argument of msyscall
 

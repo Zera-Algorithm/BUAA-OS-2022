@@ -157,16 +157,16 @@
 	xori	k1, 0x1000
 	bnez	k1, 1f
 	nop
-	li	sp, 0x82000000
+	li	sp, 0x82000000 // TIMESTACK
 	j	2f
 	nop
 1:
 	bltz	sp, 2f
 	nop
-	lw	sp, KERNEL_SP
+	lw	sp, KERNEL_SP // sp = *KERNEL_SP
 	nop
 
-2:	nop
+2:	nop // 这时是内核区发生的异常
 
 
 .endm
