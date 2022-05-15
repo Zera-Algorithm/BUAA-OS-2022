@@ -306,7 +306,7 @@ int sys_env_alloc(void)
 	env_alloc(&e, curenv->env_id);
 	
 	// error.
-	bcopy((void *)(&(curenv->env_tf)),
+	bcopy((void *)(KERNEL_SP - sizeof(struct Trapframe)),
 		  (void *)(&(e->env_tf)), 
 		  sizeof(struct Trapframe));
 
