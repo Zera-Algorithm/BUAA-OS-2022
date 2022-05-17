@@ -442,6 +442,7 @@ int sys_ipc_can_send(int sysno, u_int envid, u_int value, u_int srcva,
 	struct Env *e;
 	struct Page *p;
 	if ((r = envid2env(envid, &e, 0)) < 0) {
+		printf("ipc_send: envid2env error!\n");
 		return r;
 	}
 	if (e->env_ipc_recving == 0) {
@@ -451,8 +452,13 @@ int sys_ipc_can_send(int sysno, u_int envid, u_int value, u_int srcva,
 	e->env_ipc_from = curenv->env_id;
 	e->env_ipc_value = value;
 	
-	if ((r = sys_mem_map(sysno, curenv->env_id, srcva, e->env_id, e->env_ipc_dstva, perm)) < 0)
-		return r;
+	if (srcva != 0) {
+		// means need to share mem.
+		if ((r = sys_mem_map(sysno, curenv->env_id, srcva, e->env_id, e->env_ipc_dstva, perm)) < 0) {
+			printf("ipc_send: sys_mem_map error!\n");
+			return r;
+		}
+	}
 
 	e->env_status = ENV_RUNNABLE;
 	return 0;
