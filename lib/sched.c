@@ -32,7 +32,8 @@ void sched_yield(void)
      *  LIST_INSERT_TAIL, LIST_REMOVE, LIST_FIRST, LIST_EMPTY
      */
 	/* Step1: count == 0 indicates that time is up, change executing env.*/
-    if (count == 0) {
+	/* Actually Not only count == 0 we need to change Env, but current process become NULL or NOT_RUNNABLE, we also need to change. */
+    if (count == 0 || e == NULL || e->env_status != ENV_RUNNABLE) {
 		if (e != NULL) {
 			// Current env's time is over, change to another.
         	LIST_REMOVE(e, env_sched_link); //Step1: delete e from current sched list.
