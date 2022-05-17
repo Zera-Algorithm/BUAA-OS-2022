@@ -177,6 +177,8 @@ int sys_mem_alloc(int sysno, u_int envid, u_int va, u_int perm)
 	/* Step6: insert the page into user address space. */
 	if ((ret = page_insert(env->env_pgdir, ppage, va, perm)) < 0)
 		return ret;
+
+	return ret;
 }
 
 /* Overview:
@@ -239,14 +241,18 @@ int sys_mem_map(int sysno, u_int srcid, u_int srcva, u_int dstid, u_int dstva,
 		// ppte read-only, but perm allows write. this will cause error.
 		return -E_INVAL;
 	}
-
-	/* Step6: Map srcva's physical address to dstva. */
-	if((ret = pgdir_walk(dstenv->env_pgdir, round_dstva, 1, &ppte_M)) < 0) {
+	
+	if ( (ret = page_insert(dstenv->env_pgdir, ppage, dstva, perm)) < 0) {
 		return ret;
 	}
-	*ppte_M = PTE_ADDR(*ppte) | perm;
 
-	ppage->pp_ref += 1; // increase pp_ref, IMPORTANT!!
+	/* Step6: Map srcva's physical address to dstva. */
+	// if((ret = pgdir_walk(dstenv->env_pgdir, round_dstva, 1, &ppte_M)) < 0) {
+	// 	  return ret;
+	//}
+	//*ppte_M = PTE_ADDR(*ppte) | perm;
+
+	// ppage->pp_ref += 1; // increase pp_ref, IMPORTANT!!
 
 	return ret;
 }
