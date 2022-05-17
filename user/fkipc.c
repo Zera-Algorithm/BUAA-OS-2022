@@ -11,35 +11,26 @@ umain(void)
 	char *str_recv = (char *)(0x00800000);
 
 	if ((who = fork()) != 0) {
-		// get the ball rolling
-		writef("\n@@@@@send 0 from %x to %x\n", syscall_getenvid(), who);
-		
+		writef("I'm Father!\n");
+
 		syscall_mem_alloc(syscall_getenvid(), (u_int)str_send, PTE_V | PTE_R);
 		strcpy(str_send, "Hello World!\n");
-
+		
+		writef("Father send ipc.\n");
 		ipc_send(who, 0, str_send, PTE_V | PTE_R);
 		//user_panic("&&&&&&&&&&&&&&&&&&&&&&&&m");
+		ipc_recv(&who, 0, 0);
+		writef("Father: Modified str = %s\n", str_send);
 	}
-
-	for (;;) {
-		writef("%x am waiting.....\n", syscall_getenvid());	
-
+	else {
+		writef("I'm child!\n");
 		i = ipc_recv(&who, str_recv, 0);
-		writef("%x got String %s from %x.\n", syscall_getenvid(), str_recv, who);
-
-		writef("%x got %d from %x\n", syscall_getenvid(), i, who);
-
-		//user_panic("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&");
-		if (i == 1) return;
-
-		i++;
-		writef("\n@@@@@send %d from %x to %x\n",i, syscall_getenvid(), who);
-		ipc_send(who, i, str_recv, PTE_V | PTE_R);
-
-		if (i == 1) {
-			return;
-		}
+		writef("Child recv Message %s, and value %d.\n", str_recv, i);
+		writef("Child: Modifying message.\n");
+		str_recv[0] = 'T';
+		ipc_send(who, 0, 0, 0);
 	}
+
 	return;
 }
 
