@@ -234,13 +234,13 @@ int sys_mem_map(int sysno, u_int srcid, u_int srcva, u_int dstid, u_int dstva,
 	/* Step5: query physical address of srcva. */
 	if ((ppage = page_lookup(srcenv->env_pgdir, round_srcva, &ppte)) == NULL) {
 		/* srcva don't match any physical memory space. */
-		return -E_BAD_ENV;
-	}
-
-	if ((*ppte & PTE_R) == 0 && (perm & PTE_R) != 0) {
-		// ppte read-only, but perm allows write. this will cause error.
 		return -E_INVAL;
 	}
+
+	//if ((*ppte & PTE_R) == 0 && (perm & PTE_R) != 0) {
+		// ppte read-only, but perm allows write. this will cause error.
+	//	return -E_INVAL;
+	//}
 	
 	if ( (ret = page_insert(dstenv->env_pgdir, ppage, dstva, perm)) < 0) {
 		return ret;
@@ -312,8 +312,10 @@ int sys_env_alloc(void)
 	/* Step1: Allocate an env and set appropriate value to it. */
 	/* Values include: envid, status, parent id, some value of Trapframe */
 	/* 也执行env_setup_vm函数，分配了页目录，并映射了一些必要的空间。*/
-	env_alloc(&e, curenv->env_id);
+	r = env_alloc(&e, curenv->env_id);
 	
+	if (r < 0) return r;
+
 	// error.
 	bcopy((void *)(KERNEL_SP - sizeof(struct Trapframe)),
 		  (void *)(&(e->env_tf)), 
@@ -355,12 +357,12 @@ int sys_set_env_status(int sysno, u_int envid, u_int status)
 		return ret;
 	}
 	// if is not in the following 3 states: RUNNABLE, NOT_RUNNABLE, FREE
-	if (env->env_status != ENV_RUNNABLE && env->env_status != ENV_NOT_RUNNABLE && env->env_status != ENV_FREE) {
+	if (status != ENV_RUNNABLE && status != ENV_NOT_RUNNABLE && status != ENV_FREE) {
 		return -E_INVAL;
 	}
 	// printf("sys_set_env_status: envid = %d, env_pc = %x\n", envid, env->env_tf.pc);
 	if (env->env_status == ENV_NOT_RUNNABLE && status == ENV_RUNNABLE) {
-		LIST_INSERT_HEAD(env_sched_list, env, env_sched_link);
+		LIST_INSERT_TAIL(&env_sched_list[0], env, env_sched_link);
 	}
 	env->env_status = status;
 	return 0;
@@ -422,6 +424,7 @@ void sys_ipc_recv(int sysno, u_int dstva)
 	curenv->env_ipc_dstva = dstva;
 	curenv->env_status = ENV_NOT_RUNNABLE;
 	sys_yield(); // yield the right to execute
+	// never return.
 }
 
 /* Overview:
