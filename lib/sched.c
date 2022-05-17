@@ -62,6 +62,7 @@ void sched_yield(void)
 				break;
             }
         }
+		while(1);
     }
     else {
 		// printf("Other dir.\n");
