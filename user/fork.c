@@ -84,7 +84,7 @@ void user_bzero(void *v, u_int n)
 static void
 pgfault(u_int va)
 {
-	u_int tmp = (u_int)0x00300000;
+	u_int tmp = (u_int)USTACKTOP; // a page of invalid mem.
 	int r;
 	int env_id = syscall_getenvid();
 	u_int pn = (va >> 12) & 0xfffff;
