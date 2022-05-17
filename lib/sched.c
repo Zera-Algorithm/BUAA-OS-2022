@@ -45,6 +45,7 @@ void sched_yield(void)
 				// printf("count = %d(from priority)\n", count);
                 count -= 1;
                 env_run(e);
+				break;
 				/* It will never return. */
             }
         }
@@ -58,6 +59,7 @@ void sched_yield(void)
 				// printf("count = %d(from priority)\n", count);
                 count -= 1;
                 env_run(e);
+				break;
             }
         }
     }

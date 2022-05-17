@@ -245,6 +245,7 @@ int page_alloc(struct Page **pp)
 	/* Step 1: Get a page from free memory. If fail, return the error code.*/
 	if (LIST_EMPTY(&page_free_list)) return -E_NO_MEM;
 	ppage_temp = LIST_FIRST(&page_free_list);
+	printf("Page_alloc: alloc PA = %08x.\n", page2pa(ppage_temp));
 
 	LIST_REMOVE(ppage_temp, pp_link);
 
@@ -268,6 +269,7 @@ void page_free(struct Page *pp)
 
 	/* Step 2: If the `pp_ref` reaches 0, mark this page as free and return. */
 	else if (pp->pp_ref == 0) {
+		printf("page_alloc ~ page_free: free PA(%08x).\n", page2pa(pp));
 		LIST_INSERT_HEAD(&page_free_list, pp, pp_link);
 		return;
 	}
@@ -668,7 +670,7 @@ void pageout(int va, int context, struct Trapframe *tf)
 	u_long r;
 	struct Page *p = NULL;
 
-	printf("EPC = %8x\n", tf->cp0_epc);
+	printf("[pageout]EPC = %08x,sp = %08x, curenvID = %d, addr = %x\n", tf->cp0_epc, tf->regs[29], curenv->env_id, va);
 	if (context < 0x80000000) {
 		panic("tlb refill and alloc error!");
 	}

@@ -149,6 +149,7 @@ int sys_set_pgfault_handler(int sysno, u_int envid, u_int func, u_int xstacktop)
 /*** exercise 4.3 ***/
 int sys_mem_alloc(int sysno, u_int envid, u_int va, u_int perm)
 {
+	// printf("SYS_MEM_ALLOC: envid = %d, va = %x, perm = %012b.\n", envid, va, perm);
 	// Your code here.
 	struct Env *env;
 	struct Page *ppage;
@@ -245,6 +246,8 @@ int sys_mem_map(int sysno, u_int srcid, u_int srcva, u_int dstid, u_int dstva,
 	}
 	*ppte_M = PTE_ADDR(*ppte) | perm;
 
+	ppage->pp_ref += 1; // increase pp_ref, IMPORTANT!!
+
 	return ret;
 }
 
@@ -310,8 +313,7 @@ int sys_env_alloc(void)
 		  (void *)(&(e->env_tf)), 
 		  sizeof(struct Trapframe));
 
-	printf("Now curenvID = %d, EPC = %x, childID = %d, child_epc = %x\n", curenv->env_id, curenv->env_tf.cp0_epc, e->env_id, e->env_tf.cp0_epc);
-
+	// printf("Now curenvID = %d, EPC = %x, childID = %d, child_epc = %x\n", curenv->env_id, curenv->env_tf.cp0_epc, e->env_id, e->env_tf.cp0_epc);
 	
 	e->env_tf.pc = e->env_tf.cp0_epc;
 
@@ -350,7 +352,7 @@ int sys_set_env_status(int sysno, u_int envid, u_int status)
 	if (env->env_status != ENV_RUNNABLE && env->env_status != ENV_NOT_RUNNABLE && env->env_status != ENV_FREE) {
 		return -E_INVAL;
 	}
-	printf("sys_set_env_status: envid = %d, env_pc = %x\n", envid, env->env_tf.pc);
+	// printf("sys_set_env_status: envid = %d, env_pc = %x\n", envid, env->env_tf.pc);
 	if (env->env_status == ENV_NOT_RUNNABLE && status == ENV_RUNNABLE) {
 		LIST_INSERT_HEAD(env_sched_list, env, env_sched_link);
 	}

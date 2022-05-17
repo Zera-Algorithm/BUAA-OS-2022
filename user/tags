@@ -1,0 +1,100 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+Ctod	print.c	16;"	d	file:
+Dev	fd.h	/^struct Dev {$/;"	s
+Fd	fd.h	/^struct Fd {$/;"	s
+Filefd	fd.h	/^struct Filefd {$/;"	s
+INCLUDES	Makefile	/^INCLUDES = -I..\/include\/$/;"	m
+IsDigit	print.c	15;"	d	file:
+LIB_H	lib.h	2;"	d
+OUTPUT	print.c	36;"	d	file:
+O_ACCMODE	lib.h	135;"	d
+O_CREAT	lib.h	137;"	d
+O_EXCL	lib.h	139;"	d
+O_MKDIR	lib.h	140;"	d
+O_RDONLY	lib.h	132;"	d
+O_RDWR	lib.h	134;"	d
+O_TRUNC	lib.h	138;"	d
+O_WRONLY	lib.h	133;"	d
+Stat	fd.h	/^struct Stat {$/;"	s
+USED	lib.h	18;"	d
+USERLIB	Makefile	/^USERLIB := printf.o \\$/;"	m
+_USER_FD_H_	fd.h	2;"	d
+__asm_pgfault_handler	entry.S	/^__asm_pgfault_handler:$/;"	l
+__pgfault_handler	entry.S	/^	__pgfault_handler:$/;"	l
+_start	entry.S	/^_start:$/;"	l
+_user_panic	printf.c	/^_user_panic(const char *file, int line, const char *fmt, ...)$/;"	f
+dev_close	fd.h	/^	int (*dev_close)(struct Fd *);$/;"	m	struct:Dev
+dev_id	fd.h	/^	int dev_id;$/;"	m	struct:Dev
+dev_name	fd.h	/^	char *dev_name;$/;"	m	struct:Dev
+dev_read	fd.h	/^	int (*dev_read)(struct Fd *, void *, u_int, u_int);$/;"	m	struct:Dev
+dev_seek	fd.h	/^	int (*dev_seek)(struct Fd *, u_int);$/;"	m	struct:Dev
+dev_stat	fd.h	/^	int (*dev_stat)(struct Fd *, struct Stat *);$/;"	m	struct:Dev
+dev_write	fd.h	/^	int (*dev_write)(struct Fd *, const void *, u_int, u_int);$/;"	m	struct:Dev
+duppage	fork.c	/^duppage(u_int envid, u_int pn)$/;"	f	file:
+env	libos.c	/^struct Env *env;$/;"	v	typeref:struct:Env
+envs	entry.S	/^envs:$/;"	l
+exit	libos.c	/^exit(void)$/;"	f
+f_fd	fd.h	/^	struct Fd f_fd;$/;"	m	struct:Filefd	typeref:struct:Filefd::Fd
+f_file	fd.h	/^	struct File f_file;$/;"	m	struct:Filefd	typeref:struct:Filefd::File
+f_fileid	fd.h	/^	u_int f_fileid;$/;"	m	struct:Filefd
+fd_dev_id	fd.h	/^	u_int fd_dev_id;$/;"	m	struct:Fd
+fd_offset	fd.h	/^	u_int fd_offset;$/;"	m	struct:Fd
+fd_omode	fd.h	/^	u_int fd_omode;$/;"	m	struct:Fd
+fdtab	entry.S	/^fdtab:$/;"	l
+fork	fork.c	/^fork(void)$/;"	f
+fsipcbuf	entry.S	/^fsipcbuf:$/;"	l
+ipc_recv	ipc.c	/^ipc_recv(u_int *whom, u_int dstva, u_int *perm)$/;"	f
+ipc_send	ipc.c	/^ipc_send(u_int whom, u_int val, u_int srcva, u_int perm)$/;"	f
+libmain	libos.c	/^libmain(int argc, char **argv)$/;"	f
+memcpy	string.c	/^memcpy(void *destaddr, void const *srcaddr, u_int len)$/;"	f
+nop	entry.S	/^nop$/;"	l
+pages	entry.S	/^pages:$/;"	l
+pgfault	fork.c	/^pgfault(u_int va)$/;"	f	file:
+set_pgfault_handler	pgfault.c	/^set_pgfault_handler(void (*fn)(u_int va))$/;"	f
+sfork	fork.c	/^sfork(void)$/;"	f
+st_dev	fd.h	/^	struct Dev *st_dev;$/;"	m	struct:Stat	typeref:struct:Stat::Dev
+st_isdir	fd.h	/^	u_int st_isdir;$/;"	m	struct:Stat
+st_name	fd.h	/^	char st_name[MAXNAMELEN];$/;"	m	struct:Stat
+st_size	fd.h	/^	u_int st_size;$/;"	m	struct:Stat
+strchr	string.c	/^strchr(const char *s, char c)$/;"	f
+strcmp	string.c	/^strcmp(const char *p, const char *q)$/;"	f
+strcpy	string.c	/^strcpy(char *dst, const char *src)$/;"	f
+strlen	string.c	/^strlen(const char *s)$/;"	f
+syscall_cgetc	syscall_lib.c	/^syscall_cgetc()$/;"	f
+syscall_env_alloc	lib.h	/^inline static int syscall_env_alloc(void)$/;"	f
+syscall_env_destroy	syscall_lib.c	/^syscall_env_destroy(u_int envid)$/;"	f
+syscall_getenvid	syscall_lib.c	/^syscall_getenvid(void)$/;"	f
+syscall_ipc_can_send	syscall_lib.c	/^syscall_ipc_can_send(u_int envid, u_int value, u_int srcva, u_int perm)$/;"	f
+syscall_ipc_recv	syscall_lib.c	/^syscall_ipc_recv(u_int dstva)$/;"	f
+syscall_mem_alloc	syscall_lib.c	/^syscall_mem_alloc(u_int envid, u_int va, u_int perm)$/;"	f
+syscall_mem_map	syscall_lib.c	/^syscall_mem_map(u_int srcid, u_int srcva, u_int dstid, u_int dstva, u_int perm)$/;"	f
+syscall_mem_unmap	syscall_lib.c	/^syscall_mem_unmap(u_int envid, u_int va)$/;"	f
+syscall_panic	syscall_lib.c	/^syscall_panic(char *msg)$/;"	f
+syscall_putchar	syscall_lib.c	/^void syscall_putchar(char ch)$/;"	f
+syscall_set_env_status	syscall_lib.c	/^syscall_set_env_status(u_int envid, u_int status)$/;"	f
+syscall_set_pgfault_handler	syscall_lib.c	/^syscall_set_pgfault_handler(u_int envid, void (*func)(void), u_int xstacktop)$/;"	f
+syscall_set_trapframe	syscall_lib.c	/^syscall_set_trapframe(u_int envid, struct Trapframe *tf)$/;"	f
+syscall_yield	syscall_lib.c	/^syscall_yield(void)$/;"	f
+umain	fktest.c	/^void umain()$/;"	f
+umain	fktest2.c	/^void umain() {$/;"	f
+umain	idle.c	/^void umain()$/;"	f
+umain	pingpong.c	/^umain(void)$/;"	f
+umain	tltest.c	/^void umain() {$/;"	f
+user_PrintChar	print.c	/^user_PrintChar(char *buf, char c, int length, int ladjust)$/;"	f
+user_PrintNum	print.c	/^user_PrintNum(char *buf, unsigned long u, int base, int negFlag,$/;"	f
+user_PrintString	print.c	/^user_PrintString(char *buf, char *s, int length, int ladjust)$/;"	f
+user_assert	lib.h	128;"	d
+user_bcopy	fork.c	/^void user_bcopy(const void *src, void *dst, size_t len)$/;"	f
+user_bzero	fork.c	/^void user_bzero(void *v, u_int n)$/;"	f
+user_lp_Print	print.c	/^user_lp_Print(void (*output)(void *, const char *, int),$/;"	f
+user_myoutput	printf.c	/^static void user_myoutput(void *arg, const char *s, int l)$/;"	f	file:
+user_panic	lib.h	33;"	d
+user_theFatalMsg	print.c	/^static const char user_theFatalMsg[] = "fatal error in user_lp_Print!";$/;"	v	file:
+vpd	entry.S	/^vpd:$/;"	l
+vpt	entry.S	/^vpt:$/;"	l
+writef	printf.c	/^void writef(char *fmt, ...)$/;"	f
