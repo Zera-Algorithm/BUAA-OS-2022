@@ -38,7 +38,8 @@ page_fault_handler(struct Trapframe *tf)
 {
     struct Trapframe PgTrapFrame;
     extern struct Env *curenv;
-	printf("KERNEL: page_fault_handler, Curenv = %d, EPC = %x.\n", curenv->env_id, tf->cp0_epc);
+
+	// printf("KERNEL: page_fault_handler, Curenv = %d, EPC = %x.\n", curenv->env_id, tf->cp0_epc);
 
     bcopy(tf, &PgTrapFrame, sizeof(struct Trapframe));
 

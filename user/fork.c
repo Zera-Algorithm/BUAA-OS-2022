@@ -89,38 +89,41 @@ pgfault(u_int va)
 	int env_id = syscall_getenvid();
 	u_int pn = (va >> 12) & 0xfffff;
 	u_int perm = (((u_int)((*vpt)[pn])) & 0xfff);
-	writef("Pgfault: Happens at VA = %x.\n", va);
+	
+	// writef("Pgfault: Happens at VA = %x.\n", va);
 
-	writef("1. Stack saved ra = %x.\n", *(int *)(0x7f3fdfbc));
+	// writef("1. Stack saved ra = %x.\n", *(int *)(0x7f3fdfbc));
 
 	if ((perm & PTE_COW) == 0) {
 		user_panic("Error: PAGE FAULT Happens when PTE_COW is not set!!");
 	}
 	// alloc a page to tmp address.
 
-	writef("Pgfault: curenv->envid = %d.\n", env_id);
+	// writef("Pgfault: curenv->envid = %d.\n", env_id);
 	
-	writef("2. Stack saved ra = %x.\n", *(int *)(0x7f3fdfbc));
+	// writef("2. Stack saved ra = %x.\n", *(int *)(0x7f3fdfbc));
 	// don't use env->env_id, it's not correct! Pgfault may happens in syscall_getenvid.
 	r = syscall_mem_alloc(env_id, tmp, perm ^ PTE_COW);
 		
-	writef("before copy: Stack saved ra = %x.\n", *(int *)(0x7f3fdfbc));
+	// writef("before copy: Stack saved ra = %x.\n", *(int *)(0x7f3fdfbc));
 
-	writef("The result of tmp alloc: ret = %d.\n", r);
+	// writef("The result of tmp alloc: ret = %d.\n", r);
 	// copy content of va to tmp address.
 	
-	writef("Pgfault: copy COW page to tmp position(%08x).\n", tmp);
+	// writef("Pgfault: copy COW page to tmp position(%08x).\n", tmp);
+	
 	user_bcopy((void *)(va & 0xfffff000), (void *)tmp, BY2PG);
 	syscall_mem_unmap(env_id, (va & 0xfffff000)); // When unmap, it also invalidates tlb table items, that's also what we need.
+	
 	// (*vpt)[pn] = (*vpt)[tmp >> 12]; // copy perm and PA, Access by User level's pgtable, ERROR!
 
 	// You must map using syscall_mem_map AS FOLLOWS. Or your page could be deleted by page_remove.
 	syscall_mem_map(env_id, tmp & 0xfffff000, env_id, pn << 12, perm ^ PTE_COW);
 
-	writef("VA(%08x) maps to PA(%08x).\n", va & 0xfffff000, (*vpt)[tmp >> 12] & 0xfffff000);
+	// writef("VA(%08x) maps to PA(%08x).\n", va & 0xfffff000, (*vpt)[tmp >> 12] & 0xfffff000);
 	syscall_mem_unmap(env_id, tmp); // release the tmp address Mapping.
 	
-	writef("after copy: Stack saved ra = %x.\n", *(int *)(0x7f3fdfbc));
+	// writef("after copy: Stack saved ra = %x.\n", *(int *)(0x7f3fdfbc));
 
 	//	writef("fork.c:pgfault():\t va:%x\n",va);
 	
@@ -171,7 +174,7 @@ duppage(u_int envid, u_int pn)
 				(*vpt)[pn] = (item | PTE_COW);
 				ret = syscall_mem_map(env->env_id, addr, envid, addr, (item | PTE_COW) & 0xfff);
 			}
-			writef("duppage -> syscall_mem_map: ret = %d, addr = %x\n", ret, pn << 12);
+			// writef("duppage -> syscall_mem_map: ret = %d, addr = %x\n", ret, pn << 12);
 		}
 	}
 	//	user_panic("duppage not implemented");
@@ -200,36 +203,43 @@ fork(void)
 	set_pgfault_handler(pgfault); // must set before syscall_env_alloc, since YOU should pass the __pgfault_handler to the child.
 	//The parent installs pgfault using set_pgfault_handler
 
-	writef("It's user space's fork!\n");
+	// writef("It's user space's fork!\n");
+
 	newenvid = syscall_env_alloc();
-	writef("Finish user env_alloc syscall.\n");
-	writef("My envid = %d, child is %d.\n", syscall_getenvid(), newenvid);
-	// user_panic("^^^^^^^^^");
+	
+	// writef("Finish user env_alloc syscall.\n");
+	// writef("My envid = %d, child is %d.\n", syscall_getenvid(), newenvid);
 
 	//alloc a new alloc
 	/* If this is child process. */
 	if (newenvid == 0) {
-		writef("This is child space.\n");
+		// writef("This is child space.\n");
+
 		/* child process: set env to its PCB */
 		tempEnvid = syscall_getenvid();
-		writef("Child knows its id = %d.\n", tempEnvid);
+
+		// writef("Child knows its id = %d.\n", tempEnvid);
 		i = (tempEnvid & ((1<<10)-1));
 		env = envs + i;
-		writef("child process finish fork. sys_env_alloc@ret_value = %d.\n", newenvid);
-		writef("child fork finished!!!\n");
+
+		// writef("child process finish fork. sys_env_alloc@ret_value = %d.\n", newenvid);
 	}
 	else { // parent process
 		// Copy COW Memory.
-		writef("duppaging...\n");
+		// writef("duppaging...\n");
+
 		for (addr = 0; addr < USTACKTOP; addr += BY2PG) {
 			duppage(newenvid, addr >> 12);
 		}
-		writef("malloc for UXSTACK...\n");
+
+		// writef("malloc for UXSTACK...\n");
 		syscall_mem_alloc(newenvid, UXSTACKTOP-BY2PG, PTE_R | PTE_V);
-		writef("set Handler...\n");
+		
+		// writef("set Handler...\n");
 		syscall_set_pgfault_handler(newenvid, __asm_pgfault_handler, UXSTACKTOP);
+		
 		syscall_set_env_status(newenvid, ENV_RUNNABLE);
-		writef("finish father space.\n");
+		// writef("finish father space.\n");
 	}
 
 	return newenvid;

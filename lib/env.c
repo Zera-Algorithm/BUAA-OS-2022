@@ -521,7 +521,7 @@ env_run(struct Env *e)
             (void *)(&(curenv->env_tf)),
             sizeof(struct Trapframe));
         curenv->env_tf.pc = curenv->env_tf.cp0_epc;	
-		printf("[ EnvRun ] Env envid = %d, cp0_epc = %x\n", curenv->env_id, curenv->env_tf.cp0_epc);
+		// printf("[ EnvRun ] Env envid = %d, cp0_epc = %x\n", curenv->env_id, curenv->env_tf.cp0_epc);
     }
 	
 	// printf("B. change curenv...\n");
