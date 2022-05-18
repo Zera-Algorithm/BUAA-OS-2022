@@ -39,7 +39,7 @@
 		subu	sp,k1,TF_SIZE
 		sw	k0,TF_REG29(sp)
 		sw	$2,TF_REG2(sp)
-		mfc0	v0,CP0_STATUS
+		mfc0	v0,CP0_STATUS // v0 not be protected?
 		sw	v0,TF_STATUS(sp)
 		mfc0	v0,CP0_CAUSE
 		sw	v0,TF_CAUSE(sp)
