@@ -37,7 +37,7 @@ ide_read(u_int diskno, u_int secno, void *dst, u_int nsecs)
 	// make C compiler use diskno as a memory address, not register.
 	// Now I know why stack need to alloc 4 empty positions for arguments.
 	ret = syscall_write_dev(&diskno, 0x13000010, 4);
-	if (ret < 0) panic("Disk read panic^^^^");
+	if (ret < 0) user_panic("Disk read panic^^^^");
 
 	while (offset_begin + offset < offset_end) {
 		// Your code here
@@ -46,20 +46,20 @@ ide_read(u_int diskno, u_int secno, void *dst, u_int nsecs)
 		/* Step2: set read offset. */
 		abs_offset = offset_begin + offset;
 		ret = syscall_write_dev(&abs_offset, 0x13000000, 4);
-		if (ret < 0) panic("Disk read panic^^^^");
+		if (ret < 0) user_panic("Disk read panic^^^^");
 
 		/* Step3: set command to read. */
 		command = 0; // read command
 		ret = syscall_write_dev(&command, 0x13000020, 1);
-		if (ret < 0) panic("Disk read panic^^^^");
+		if (ret < 0) user_panic("Disk read panic^^^^");
 
 		/* Step4: read operation status. */
 		ret = syscall_read_dev(&status, 0x13000030, 4);
-		if (ret < 0 || ret == 0) panic("Disk read panic^^^^");
+		if (ret < 0 || ret == 0) user_panic("Disk read panic^^^^");
 
 		/* Step5: read sector data to dst. */
 		ret = syscall_read_dev(dst + offset, 0x13004000, 0x200);
-		if (ret < 0) panic("Disk read panic^^^^");
+		if (ret < 0) user_panic("Disk read panic^^^^");
 
 		offset += 0x200;
 	}
@@ -96,7 +96,7 @@ ide_write(u_int diskno, u_int secno, void *src, u_int nsecs)
 
 	/* Step1: set IDE_ID. */
 	ret = syscall_write_dev(&diskno, 0x13000010, 4);
-	if (ret < 0) panic("Disk write panic^^^^");
+	if (ret < 0) user_panic("Disk write panic^^^^");
 
 	while (offset_begin + offset < offset_end) {
 		// Your code here
@@ -105,20 +105,20 @@ ide_write(u_int diskno, u_int secno, void *src, u_int nsecs)
 		/* Step2: set write offset. */
 		abs_offset = offset_begin + offset;
 		ret = syscall_write_dev(&abs_offset, 0x13000000, 4);
-		if (ret < 0) panic("Disk write panic^^^^");
+		if (ret < 0) user_panic("Disk write panic^^^^");
 
 		/* Step3: write sector data to disk buffer. */
 		ret = syscall_write_dev(src + offset, 0x13004000, 0x200);
-		if (ret < 0) panic("Disk write panic^^^^");
+		if (ret < 0) user_panic("Disk write panic^^^^");
 
 		/* Step3: set command to read. */
 		command = 1; // write command
 		ret = syscall_write_dev(&command, 0x13000020, 1);
-		if (ret < 0) panic("Disk write panic^^^^");
+		if (ret < 0) user_panic("Disk write panic^^^^");
 
 		/* Step4: read operation status. */
 		ret = syscall_read_dev(&status, 0x13000030, 4);
-		if (ret < 0 || ret == 0) panic("Disk write panic^^^^");
+		if (ret < 0 || ret == 0) user_panic("Disk write panic^^^^");
 
 		offset += 0x200;
 	}
