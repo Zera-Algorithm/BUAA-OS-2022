@@ -504,9 +504,65 @@ int sys_ipc_can_send(int sysno, u_int envid, u_int value, u_int srcva,
  *	* ---------------------------------*
  */
  /*** exercise 5.1 ***/
+#define CON_S 0x10000000
+#define CON_E 0x10000020
+#define IDE_S 0x13000000
+#define IDE_E 0x13004200
+#define RTC_S 0x15000000
+#define RTC_E 0x15000200
 int sys_write_dev(int sysno, u_int va, u_int dev, u_int len)
 {
         // Your code here
+	Pde *pgdir;
+	u_int round_va;
+	int i;
+	Pte *pte;
+	char *p_buf;
+	volatile char *dev_data;
+	struct Page *page;
+
+	/* Step1: check len. */
+	if (len <= 0) {
+		return -E_INVAL;
+	}
+
+	/* Step2: check va's validity. */
+	pgdir = curenv->env_pgdir;
+	round_va = ROUNDDOWN(va, BY2PG);
+	for (; round_va <= va + len - 1; round_va += BY2PG) {
+		if ( (page = page_lookup(pgdir, round_va, &pte)) == NULL) {
+			// In this time, some of va part isn't be mapped to a physical address. Failure.
+			return -E_INVAL;
+		}
+	}
+
+	/* Step3: check dev range. */
+	// assert len > 0;
+	if ((CON_S <= dev && dev + len <= CON_E) 
+		|| (IDE_S <= dev && dev + len <= IDE_E) 
+		|| (RTC_S <= dev && dev + len <= RTC_E)) {
+		// valid dev range
+		
+		/* Step 4: copy bytes. */
+		dev_data = (char *)(0xA0000000 + dev);
+
+		page = page_lookup(pgdir, va, &pte);
+		p_buf = (char *)(page2kva(page) + va % BY2PG);
+		for (i = 0; i < len; i++) {
+			*dev_data = *p_buf; // write bytes to device.
+			dev_data += 1;
+			p_buf += 1;
+			if (((u_int)p_buf) % BY2PG == 0) {
+				// change to another page.
+				page = page_lookup(pgdir, va, &pte);
+				p_buf = (char *)page2kva(page);
+			}
+		}
+		return 0;
+	}
+	else {
+		return -E_INVAL;
+	}
 }
 
 /* Overview:
@@ -529,4 +585,54 @@ int sys_write_dev(int sysno, u_int va, u_int dev, u_int len)
 int sys_read_dev(int sysno, u_int va, u_int dev, u_int len)
 {
         // Your code here
+	Pde *pgdir;
+	u_int round_va;
+	int i;
+	Pte *pte;
+	char *p_buf;
+	volatile char *dev_data;
+	struct Page *page;
+
+	/* Step1: check len. */
+	if (len <= 0) {
+		return -E_INVAL;
+	}
+
+	/* Step2: check va's validity. */
+	pgdir = curenv->env_pgdir;
+	round_va = ROUNDDOWN(va, BY2PG);
+	for (; round_va <= va + len - 1; round_va += BY2PG) {
+		if ( (page = page_lookup(pgdir, round_va, &pte)) == NULL) {
+			// In this time, some of va part isn't be mapped to a physical address. Failure.
+			return -E_INVAL;
+		}
+	}
+
+	/* Step3: check dev range. */
+	// assert len > 0;
+	if ((CON_S <= dev && dev + len <= CON_E) 
+		|| (IDE_S <= dev && dev + len <= IDE_E) 
+		|| (RTC_S <= dev && dev + len <= RTC_E)) {
+		// valid dev range
+		
+		/* Step 4: copy bytes. */
+		dev_data = (char *)(0xA0000000 + dev);
+
+		page = page_lookup(pgdir, va, &pte);
+		p_buf = (char *)(page2kva(page) + va % BY2PG);
+		for (i = 0; i < len; i++) {
+			*p_buf = *dev_data; // read byte from device.
+			dev_data += 1;
+			p_buf += 1;
+			if (((u_int)p_buf) % BY2PG == 0) {
+				// change to another page.
+				page = page_lookup(pgdir, va, &pte);
+				p_buf = (char *)page2kva(page);
+			}
+		}
+		return 0;
+	}
+	else {
+		return -E_INVAL;
+	}
 }
