@@ -14,6 +14,8 @@ extern struct Env *env;
 void
 ipc_send(u_int whom, u_int val, u_int srcva, u_int perm)
 {
+	syscall_ipc_can_send(whom, val, srcva, perm);
+	/*
 	int r;
 
 	while ((r = syscall_ipc_can_send(whom, val, srcva, perm)) == -E_IPC_NOT_RECV) {
@@ -26,6 +28,7 @@ ipc_send(u_int whom, u_int val, u_int srcva, u_int perm)
 	}
 
 	user_panic("error in ipc_send: %d", r);
+	*/
 }
 
 // Receive a value.  Return the value and store the caller's envid

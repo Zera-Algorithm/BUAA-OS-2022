@@ -416,6 +416,16 @@ void sys_panic(int sysno, char *msg)
  * ENV_NOT_RUNNABLE, giving up cpu.
  */
 /*** exercise 4.7 ***/
+
+struct sendInfo {
+	int sendID;
+	int recvID;
+	int value;
+	u_int srcva;
+	u_int perm;
+};
+LIST_HEAD(Send_list, sendInfo); // LIST_HEAD
+struct Send_list send_list[NENV]; // 1024
 void sys_ipc_recv(int sysno, u_int dstva)
 {
 	// dst >= UTOP means dstva is not valid.
@@ -456,11 +466,12 @@ int sys_ipc_can_send(int sysno, u_int envid, u_int value, u_int srcva,
 	if (srcva >= UTOP) return -E_INVAL;
 
 	if ((r = envid2env(envid, &e, 0)) < 0) {
-		// printf("ipc_send: envid2env error!\n");
 		return r;
 	}
 	if (e->env_ipc_recving == 0) {
-		return -E_IPC_NOT_RECV;
+		curenv->env_status = ENV_NOT_RUNNABLE;
+		sys_yield(); // yield the right to exec, wait for recv.
+		// return -E_IPC_NOT_RECV;
 	}
 	e->env_ipc_recving = 0;
 	e->env_ipc_from = curenv->env_id;
@@ -470,7 +481,6 @@ int sys_ipc_can_send(int sysno, u_int envid, u_int value, u_int srcva,
 	if (srcva != 0) {
 		// means need to share mem.
 		if ((r = sys_mem_map(sysno, curenv->env_id, srcva, e->env_id, e->env_ipc_dstva, perm)) < 0) {
-			// printf("ipc_send: sys_mem_map error!\n");
 			return r;
 		}
 	}
