@@ -423,18 +423,53 @@ struct sendInfo {
 	int value;
 	u_int srcva;
 	u_int perm;
+	LIST_ENTRY(sendInfo) link;
 };
+struct sendInfo sendinfos[1302];
+int tail = 0;
+
 LIST_HEAD(Send_list, sendInfo); // LIST_HEAD
 struct Send_list send_list[NENV]; // 1024
+
 void sys_ipc_recv(int sysno, u_int dstva)
 {
-	// dst >= UTOP means dstva is not valid.
+	struct sendInfo *sendinfo;
+	struct Env *env;
+
+	// Step1: check dstva.
 	if (dstva >= UTOP) return;
-	curenv->env_ipc_recving = 1; // prepare to recv data.
-	curenv->env_ipc_dstva = dstva;
-	curenv->env_status = ENV_NOT_RUNNABLE;
-	sys_yield(); // yield the right to execute
-	// never return.
+
+	// Step2: check its list.
+	struct Send_list *my_list = &send_list[ENVX(curenv->env_id)];
+	if (LIST_EMPTY(my_list)) {
+		// send_list is empty, must wait.
+		curenv->env_ipc_recving = 1; // prepare to recv data.
+		curenv->env_ipc_dstva = dstva;
+		curenv->env_status = ENV_NOT_RUNNABLE;
+		sys_yield(); // yield the right to execute
+	}
+	else {
+		sendinfo = LIST_FIRST(my_list);
+		LIST_REMOVE(sendinfo, link);
+
+		/* Step3: recv messages. */
+		curenv->env_ipc_recving = 0;
+		curenv->env_ipc_from = sendinfo->sendID;
+		curenv->env_ipc_value = sendinfo->value;
+		curenv->env_ipc_perm = sendinfo->perm;
+
+		/* Step4: Map memory. */
+		if (sendinfo->srcva != 0) {
+			// means need to share mem.
+			sys_mem_map(sysno, sendinfo->sendID, sendinfo->srcva, 
+							   sendinfo->recvID, dstva, sendinfo->perm);
+		}
+
+		envid2env(sendinfo->sendID, &env, 0);
+
+		/* Step5: Notify Sender. */
+		env->env_status = ENV_RUNNABLE;
+	}
 }
 
 /* Overview:
@@ -462,6 +497,7 @@ int sys_ipc_can_send(int sysno, u_int envid, u_int value, u_int srcva,
 	int r;
 	struct Env *e;
 	struct Page *p;
+	struct Send_list *send_list_recv;
 
 	if (srcva >= UTOP) return -E_INVAL;
 
@@ -470,21 +506,39 @@ int sys_ipc_can_send(int sysno, u_int envid, u_int value, u_int srcva,
 	}
 	if (e->env_ipc_recving == 0) {
 		curenv->env_status = ENV_NOT_RUNNABLE;
+
+		/* Step1: push data into list. */
+		send_list_recv = &send_list[ENVX(envid)];
+
+		/* Step2: set infos for sendinfo. */
+		sendinfos[tail].sendID = curenv->env_id;
+		sendinfos[tail].recvID = envid;
+		sendinfos[tail].srcva = srcva;
+		sendinfos[tail].value = value;
+		sendinfos[tail].perm = perm;
+
+		/* Step3: Insert sendinfo into list. */
+		LIST_INSERT_TAIL(send_list_recv, &sendinfos[tail], link);
+		tail += 1;
+
 		sys_yield(); // yield the right to exec, wait for recv.
+		return 0;
 		// return -E_IPC_NOT_RECV;
 	}
-	e->env_ipc_recving = 0;
-	e->env_ipc_from = curenv->env_id;
-	e->env_ipc_value = value;
-	e->env_ipc_perm = perm;
-	
-	if (srcva != 0) {
-		// means need to share mem.
-		if ((r = sys_mem_map(sysno, curenv->env_id, srcva, e->env_id, e->env_ipc_dstva, perm)) < 0) {
-			return r;
+	else {
+		e->env_ipc_recving = 0;
+		e->env_ipc_from = curenv->env_id;
+		e->env_ipc_value = value;
+		e->env_ipc_perm = perm;
+		
+		if (srcva != 0) {
+			// means need to share mem.
+			if ((r = sys_mem_map(sysno, curenv->env_id, srcva, e->env_id, e->env_ipc_dstva, perm)) < 0) {
+				return r;
+			}
 		}
-	}
 
-	e->env_status = ENV_RUNNABLE;
-	return 0;
+		e->env_status = ENV_RUNNABLE;
+		return 0;
+	}
 }
