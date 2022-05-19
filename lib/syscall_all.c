@@ -14,9 +14,11 @@ extern struct Env *curenv;
  * Pre-Condition:
  * 	`c` is the character you want to print.
  */
+int lock = 0;
+
 void sys_putchar(int sysno, int c, int a2, int a3, int a4, int a5)
 {
-	printcharc((char) c);
+	if(lock == curenv->env_id) printcharc((char) c);
 	return ;
 }
 
@@ -477,4 +479,27 @@ int sys_ipc_can_send(int sysno, u_int envid, u_int value, u_int srcva,
 
 	e->env_status = ENV_RUNNABLE;
 	return 0;
+}
+
+
+int
+sys_try_acquire_console() {
+	if (lock == 0) { // lock is empty.
+		lock = curenv->env_id;
+		return 0;
+	}
+	else {
+		return -1;
+	}
+}
+
+int
+sys_release_console() {
+	if (lock == curenv->env_id) {
+		lock = 0;
+		return 0;
+	}
+	else {
+		return -1;
+	}
 }
