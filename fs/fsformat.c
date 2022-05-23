@@ -108,10 +108,12 @@ void init_disk() {
 
     // Step 1: Mark boot sector block.
     disk[0].type = BLOCK_BOOT;
+    // 第0扇区是boot扇区
 
     // Step 2: Initialize boundary.
     nbitblock = (NBLOCK + BIT2BLK - 1) / BIT2BLK;
     nextbno = 2 + nbitblock;
+    // 定义位图所占的磁盘块数，下一个块的编号
 
     // Step 2: Initialize bitmap blocks.
     for(i = 0; i < nbitblock; ++i) {
@@ -120,6 +122,8 @@ void init_disk() {
     for(i = 0; i < nbitblock; ++i) {
         memset(disk[2+i].data, 0xff, BY2BLK);
     }
+    
+    // empty the rest of block with 0, represents that this area can't be used.
     if(NBLOCK != nbitblock * BIT2BLK) {
         diff = NBLOCK % BIT2BLK / 8;
         memset(disk[2+(nbitblock-1)].data+diff, 0x00, BY2BLK - diff);
@@ -167,7 +171,10 @@ void finish_fs(char *name) {
     close(fd);
 }
 
-// Save block link.
+// Save block link: nblk(file block id) -> bno(disk block id) in f.
+// f: File Block of Write File
+// nblk: n-th file content block, start with 0.
+// bno: block id of content, to write as pointer.
 void save_block_link(struct File *f, int nblk, int bno)
 {
     assert(nblk < NINDIRECT); // if not, file is too large !
@@ -184,7 +191,9 @@ void save_block_link(struct File *f, int nblk, int bno)
     }
 }
 
-// Make new block contians link to files in a directory.
+// Make new block contains link to files in a directory.
+// create new block to save File Block(struct File *f) in Directory dirf.
+// return disk block id.
 int make_link_block(struct File *dirf, int nblk) {
     int bno = next_block(BLOCK_FILE);
     save_block_link(dirf, nblk, bno);
@@ -193,8 +202,8 @@ int make_link_block(struct File *dirf, int nblk) {
 }
 
 // Overview:
-//      Create new block pointer for a file under sepcified directory.
-//      Notice that when we delete a file, we do not re-arrenge all
+//      Create new block pointer for a file under specified directory.
+//      Notice that when we delete a file, we do not re-arrange all
 //      other file pointers, so we should be careful of existing empty
 //      file pointers
 //
@@ -214,25 +223,40 @@ struct File *create_file(struct File *dirf) {
     // Your code here
     // Step1: According to different range of nblk, make classified discussion to
     //        calculate the correct block number.
-
+    if (dirf->f_size % BY2BLK == 0) {
+        // Need to alloc a new Block.
+        bno = make_link_block(dirf, nblk);
+    }
+    else {
+        // Search for disk block id.
+        if (nblk < NDIRECT) {
+            bno = dirf->f_direct[nblk];
+        }
+        else {
+            bno = ((uint32_t *)disk[dirf->f_indirect].data)[nblk];
+        }
+    }
 
     // Step2: Find an unused pointer
-
-
+    i = dirf->f_size % BY2BLK;
+    return ((File *)disk[bno].data) + i;
 }
 
 // Write file to disk under specified dir.
+// dirf: 文件夹的文件控制块。
 void write_file(struct File *dirf, const char *path) {
     int iblk = 0, r = 0, n = sizeof(disk[0].data);
     uint8_t buffer[n+1], *dist;
     struct File *target = create_file(dirf);
 
-    /* in case `create_file` is't filled */
+    /* in case `create_file` isn't filled */
     if (target == NULL) return;
 
     int fd = open(path, O_RDONLY);
  
     // Get file name with no path prefix.
+    // 找到path中最右面的/所在的字符指针位置，若无，返回null。
+    // Sample: "/root/zrp/pic.jpg" -> "pic.jpg"
     const char *fname = strrchr(path, '/');
     if(fname)
         fname++;
@@ -260,6 +284,7 @@ void write_file(struct File *dirf, const char *path) {
 //      We ASSUME that this funcion will never fail
 void write_directory(struct File *dirf, char *name) {
     // Your code here
+    
 }
 
 int main(int argc, char **argv) {
