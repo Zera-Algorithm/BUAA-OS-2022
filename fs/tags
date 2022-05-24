@@ -1,0 +1,114 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+BLOCK_BMAP	fsformat.c	/^    BLOCK_BMAP  = 2,$/;"	e	enum:__anon1	file:
+BLOCK_BOOT	fsformat.c	/^    BLOCK_BOOT  = 1,$/;"	e	enum:__anon1	file:
+BLOCK_DATA	fsformat.c	/^    BLOCK_DATA  = 4,$/;"	e	enum:__anon1	file:
+BLOCK_FILE	fsformat.c	/^    BLOCK_FILE  = 5,$/;"	e	enum:__anon1	file:
+BLOCK_FREE	fsformat.c	/^    BLOCK_FREE  = 0,$/;"	e	enum:__anon1	file:
+BLOCK_INDEX	fsformat.c	/^    BLOCK_INDEX = 6,$/;"	e	enum:__anon1	file:
+BLOCK_SUPER	fsformat.c	/^    BLOCK_SUPER = 3,$/;"	e	enum:__anon1	file:
+BY2PG	fsformat.c	19;"	d	file:
+BY2SECT	fs.h	8;"	d
+Block	fsformat.c	/^struct Block {$/;"	s	file:
+DISKMAP	fs.h	13;"	d
+DISKMAX	fs.h	16;"	d
+DISKNO	fs.h	6;"	d
+FILEVA	serv.c	20;"	d	file:
+FSIMGFILES	Makefile	/^FSIMGFILES := motd newmotd$/;"	m
+FSLIB	Makefile	/^FSLIB :=	fs.o \\$/;"	m
+File	fsformat.c	/^typedef struct File File;$/;"	t	typeref:struct:File	file:
+INCLUDES	Makefile	/^INCLUDES = -I..\/include\/ -I..\/user\/$/;"	m
+MAXOPEN	serv.c	19;"	d	file:
+NBLOCK	fsformat.c	26;"	d	file:
+Open	serv.c	/^struct Open {$/;"	s	file:
+REQVA	serv.c	26;"	d	file:
+SECT2BLK	fs.h	9;"	d
+Super	fsformat.c	/^typedef struct Super Super;$/;"	t	typeref:struct:Super	file:
+USERLIB	Makefile	/^USERLIB :=	$(user_dir)\/printf.o \\$/;"	m
+_INC_TYPES_H_	fsformat.c	18;"	d	file:
+alloc_block	fs.c	/^alloc_block(void)$/;"	f
+alloc_block_num	fs.c	/^alloc_block_num(void)$/;"	f
+bitmap	fs.c	/^u_int *bitmap;		\/\/ bitmap blocks mapped in memory$/;"	v
+block_is_dirty	fs.c	/^block_is_dirty(u_int blockno)$/;"	f
+block_is_free	fs.c	/^block_is_free(u_int blockno)$/;"	f
+block_is_mapped	fs.c	/^block_is_mapped(u_int blockno)$/;"	f
+check_write_block	fs.c	/^check_write_block(void)$/;"	f
+create_file	fsformat.c	/^struct File *create_file(struct File *dirf) {$/;"	f
+data	fsformat.c	/^    uint8_t data[BY2BLK];$/;"	m	struct:Block	file:
+diff_msg	test.c	/^static char *diff_msg = "This is a different massage of the day!\\n\\n";$/;"	v	file:
+dir_alloc_file	fs.c	/^dir_alloc_file(struct File *dir, struct File **file)$/;"	f
+dir_lookup	fs.c	/^dir_lookup(struct File *dir, char *name, struct File **file)$/;"	f
+disk	fsformat.c	/^} disk[NBLOCK];$/;"	v	typeref:struct:Block
+diskaddr	fs.c	/^diskaddr(u_int blockno)$/;"	f
+file_block_walk	fs.c	/^file_block_walk(struct File *f, u_int filebno, u_int **ppdiskbno, u_int alloc)$/;"	f
+file_clear_block	fs.c	/^file_clear_block(struct File *f, u_int filebno)$/;"	f
+file_close	fs.c	/^file_close(struct File *f)$/;"	f
+file_create	fs.c	/^file_create(char *path, struct File **file)$/;"	f
+file_dirty	fs.c	/^file_dirty(struct File *f, u_int offset)$/;"	f
+file_flush	fs.c	/^file_flush(struct File *f)$/;"	f
+file_get_block	fs.c	/^file_get_block(struct File *f, u_int filebno, void **blk)$/;"	f
+file_map_block	fs.c	/^file_map_block(struct File *f, u_int filebno, u_int *diskbno, u_int alloc)$/;"	f
+file_open	fs.c	/^file_open(char *path, struct File **file)$/;"	f
+file_remove	fs.c	/^file_remove(char *path)$/;"	f
+file_set_size	fs.c	/^file_set_size(struct File *f, u_int newsize)$/;"	f
+file_truncate	fs.c	/^file_truncate(struct File *f, u_int newsize)$/;"	f
+finish_fs	fsformat.c	/^void finish_fs(char *name) {$/;"	f
+flush_bitmap	fsformat.c	/^void flush_bitmap() {$/;"	f
+free_block	fs.c	/^free_block(u_int blockno)$/;"	f
+fs_init	fs.c	/^fs_init(void)$/;"	f
+fs_sync	fs.c	/^fs_sync(void)$/;"	f
+fs_test	test.c	/^fs_test(void)$/;"	f
+fsformat	Makefile	/^fsformat  := .\/fsformat$/;"	m
+ide_read	ide.c	/^ide_read(u_int diskno, u_int secno, void *dst, u_int nsecs)$/;"	f
+ide_write	ide.c	/^ide_write(u_int diskno, u_int secno, void *src, u_int nsecs)$/;"	f
+init_disk	fsformat.c	/^void init_disk() {$/;"	f
+main	fsformat.c	/^int main(int argc, char **argv) {$/;"	f
+make_link_block	fsformat.c	/^int make_link_block(struct File *dirf, int nblk) {$/;"	f
+map_block	fs.c	/^map_block(u_int blockno)$/;"	f
+msg	test.c	/^static char *msg = "This is the NEW message of the day!\\n\\n";$/;"	v	file:
+nbitblock	fsformat.c	/^uint32_t nbitblock; \/\/ the number of bitmap blocks.$/;"	v
+nbitmap	fs.c	/^u_int nbitmap;		\/\/ number of bitmap blocks$/;"	v
+nelem	fsformat.c	22;"	d	file:
+next_block	fsformat.c	/^int next_block(int type) {$/;"	f
+nextbno	fsformat.c	/^uint32_t nextbno;   \/\/ next availiable block.$/;"	v
+o_ff	serv.c	/^	struct Filefd *o_ff;	\/\/ va of filefd page$/;"	m	struct:Open	typeref:struct:Open::Filefd	file:
+o_file	serv.c	/^	struct File *o_file;	\/\/ mapped descriptor for open file$/;"	m	struct:Open	typeref:struct:Open::File	file:
+o_fileid	serv.c	/^	u_int o_fileid;		\/\/ file id$/;"	m	struct:Open	file:
+o_mode	serv.c	/^	int o_mode;		\/\/ open mode$/;"	m	struct:Open	file:
+open_alloc	serv.c	/^open_alloc(struct Open **o)$/;"	f
+open_lookup	serv.c	/^open_lookup(u_int envid, u_int fileid, struct Open **po)$/;"	f
+opentab	serv.c	/^struct Open opentab[MAXOPEN] = { { 0, 0, 1 } };$/;"	v	typeref:struct:Open
+read_bitmap	fs.c	/^read_bitmap(void)$/;"	f
+read_block	fs.c	/^read_block(u_int blockno, void **blk, u_int *isnew)$/;"	f
+read_super	fs.c	/^read_super(void)$/;"	f
+reverse	fsformat.c	/^void reverse(uint32_t *p) {$/;"	f
+reverse_block	fsformat.c	/^void reverse_block(struct Block *b) {$/;"	f
+save_block_link	fsformat.c	/^void save_block_link(struct File *f, int nblk, int bno)$/;"	f
+serve	serv.c	/^serve(void)$/;"	f
+serve_close	serv.c	/^serve_close(u_int envid, struct Fsreq_close *rq)$/;"	f
+serve_dirty	serv.c	/^serve_dirty(u_int envid, struct Fsreq_dirty *rq)$/;"	f
+serve_init	serv.c	/^serve_init(void)$/;"	f
+serve_map	serv.c	/^serve_map(u_int envid, struct Fsreq_map *rq)$/;"	f
+serve_open	serv.c	/^serve_open(u_int envid, struct Fsreq_open *rq)$/;"	f
+serve_remove	serv.c	/^serve_remove(u_int envid, struct Fsreq_remove *rq)$/;"	f
+serve_set_size	serv.c	/^serve_set_size(u_int envid, struct Fsreq_set_size *rq)$/;"	f
+serve_sync	serv.c	/^serve_sync(u_int envid)$/;"	f
+skip_slash	fs.c	/^skip_slash(char *p)$/;"	f
+strecmp	test.c	/^strecmp(char *a, char *b)$/;"	f
+super	fs.c	/^struct Super *super;$/;"	v	typeref:struct:Super
+super	fsformat.c	/^struct Super super; \/\/ super block.$/;"	v	typeref:struct:Super
+tools_dir	Makefile	/^tools_dir := .$/;"	m
+type	fsformat.c	/^    uint32_t type;$/;"	m	struct:Block	file:
+umain	serv.c	/^umain(void)$/;"	f
+unmap_block	fs.c	/^unmap_block(u_int blockno)$/;"	f
+user_dir	Makefile	/^user_dir := ..\/user$/;"	m
+va_is_dirty	fs.c	/^va_is_dirty(u_int va)$/;"	f
+va_is_mapped	fs.c	/^va_is_mapped(u_int va)$/;"	f
+walk_path	fs.c	/^walk_path(char *path, struct File **pdir, struct File **pfile, char *lastelem)$/;"	f
+write_block	fs.c	/^write_block(u_int blockno)$/;"	f
+write_directory	fsformat.c	/^void write_directory(struct File *dirf, char *name) {$/;"	f
+write_file	fsformat.c	/^void write_file(struct File *dirf, const char *path) {$/;"	f

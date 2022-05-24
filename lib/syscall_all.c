@@ -548,6 +548,12 @@ int sys_write_dev(int sysno, u_int va, u_int dev, u_int len)
 
 		page = page_lookup(pgdir, va, &pte);
 		p_buf = (char *)(page2kva(page) + va % BY2PG);
+
+		if (len == 4) {
+			*(int *)dev_data = *(int *)p_buf;
+			return 0;
+		}
+
 		for (i = 0; i < len; i++) {
 			*dev_data = *p_buf; // write bytes to device.
 			dev_data += 1;
@@ -594,7 +600,7 @@ int sys_read_dev(int sysno, u_int va, u_int dev, u_int len)
 	struct Page *page;
 
 	/* Step1: check len. */
-	if (len <= 0) {
+	if (len == 0) {
 		return -E_INVAL;
 	}
 
@@ -604,6 +610,7 @@ int sys_read_dev(int sysno, u_int va, u_int dev, u_int len)
 	for (; round_va <= va + len - 1; round_va += BY2PG) {
 		if ( (page = page_lookup(pgdir, round_va, &pte)) == NULL) {
 			// In this time, some of va part isn't be mapped to a physical address. Failure.
+			panic("Va isn't right!\n");
 			return -E_INVAL;
 		}
 	}
@@ -616,12 +623,21 @@ int sys_read_dev(int sysno, u_int va, u_int dev, u_int len)
 		// valid dev range
 		
 		/* Step 4: copy bytes. */
-		dev_data = (char *)(0xA0000000 + dev);
-
+		dev_data = (char *)((u_int)0xA0000000 + dev);
+		
 		page = page_lookup(pgdir, va, &pte);
 		p_buf = (char *)(page2kva(page) + va % BY2PG);
+		
+		if (len == 4) {
+			// write 4 bytes: Do this by write an int.
+			*(int *)p_buf = *((int *)dev_data);
+			return 0;
+		}
+		
+		// read in byte.
 		for (i = 0; i < len; i++) {
 			*p_buf = *dev_data; // read byte from device.
+			// printf("Read from disk %x.\n", dev_data);
 			dev_data += 1;
 			p_buf += 1;
 			if (((u_int)p_buf) % BY2PG == 0) {
@@ -633,6 +649,7 @@ int sys_read_dev(int sysno, u_int va, u_int dev, u_int len)
 		return 0;
 	}
 	else {
+		panic("Range isn't right!\n");
 		return -E_INVAL;
 	}
 }

@@ -55,7 +55,7 @@ ide_read(u_int diskno, u_int secno, void *dst, u_int nsecs)
 
 		/* Step4: read operation status. */
 		ret = syscall_read_dev(&status, 0x13000030, 4);
-		if (ret < 0 || ret == 0) user_panic("Disk read panic^^^^");
+		if (ret < 0) user_panic("Disk read panic^^^^");
 
 		/* Step5: read sector data to dst. */
 		ret = syscall_read_dev(dst + offset, 0x13004000, 0x200);
@@ -118,7 +118,7 @@ ide_write(u_int diskno, u_int secno, void *src, u_int nsecs)
 
 		/* Step4: read operation status. */
 		ret = syscall_read_dev(&status, 0x13000030, 4);
-		if (ret < 0 || ret == 0) user_panic("Disk write panic^^^^");
+		if (ret < 0) user_panic("Disk write panic^^^^");
 
 		offset += 0x200;
 	}
