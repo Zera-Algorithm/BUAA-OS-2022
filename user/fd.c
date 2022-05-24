@@ -4,6 +4,9 @@
 #include <env.h>
 
 
+// device list.
+// Our OS supports 3 devices: file(disk), cons, pipe.
+// Each device supports methods: read write close stat seek
 static struct Dev *devtab[] = {
 	&devfile,
 	&devcons,
@@ -36,6 +39,8 @@ fd_alloc(struct Fd **fd)
 	// in a row without allocating the first page we return, we'll
 	// return the same page the second time.)
 	// Return 0 on success, or an error code on error.
+
+	// Error: fd alloc reached its top. (Max=32)
 	u_int va;
 	u_int fdno;
 
@@ -83,18 +88,25 @@ fd_lookup(int fdnum, struct Fd **fd)
 	return -E_INVAL;
 }
 
+
+// fd: fd address of this env.
+// return the address assigned for file content.
 u_int
 fd2data(struct Fd *fd)
 {
 	return INDEX2DATA(fd2num(fd));
 }
 
+// fd: fd address of this env.
+// return: fd number.
 int
 fd2num(struct Fd *fd)
 {
 	return ((u_int)fd - FDTABLE) / BY2PG;
 }
 
+// fd: fd number of this env.
+// return: fd address.
 int
 num2fd(int fd)
 {

@@ -9,6 +9,7 @@
 #define MAXFD 32
 #define FILEBASE 0x60000000
 #define FDTABLE (FILEBASE-PDMAP)
+// 从进程的FDTABLE开始，一页给一个fd。(每个fd占用一个page)
 
 #define INDEX2FD(i)	(FDTABLE+(i)*BY2PG)
 #define INDEX2DATA(i)	(FILEBASE+(i)*PDMAP)

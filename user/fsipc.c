@@ -23,7 +23,7 @@ static int
 fsipc(u_int type, void *fsreq, u_int dstva, u_int *perm)
 {
 	u_int whom;
-	// NOTEICE: Our file system no.1 process!
+	// NOTICE: Our file system is no.1 process!
 	ipc_send(envs[1].env_id, type, (u_int)fsreq, PTE_V | PTE_R);
 	return ipc_recv(&whom, dstva, perm);
 }
