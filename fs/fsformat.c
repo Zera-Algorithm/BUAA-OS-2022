@@ -9,6 +9,9 @@
 #include <assert.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <dirent.h>
 
 /* Prevent inc/types.h, included from inc/fs.h,
  * From attempting to redefine types defined in the host's inttypes.h. */
@@ -216,30 +219,40 @@ int make_link_block(struct File *dirf, int nblk) {
 //      use make_link_block function
 /*** exercise 5.4 ***/
 struct File *create_file(struct File *dirf) {
-    struct File *dirblk;
+    struct File *fileblk;
     int i, bno, found;
     int nblk = dirf->f_size / BY2BLK;
 
     // Your code here
     // Step1: According to different range of nblk, make classified discussion to
     //        calculate the correct block number.
-    if (dirf->f_size % BY2BLK == 0) {
-        // Need to alloc a new Block.
-        bno = make_link_block(dirf, nblk);
+	if (nblk == 0) {
+		make_link_block(dirf, nblk);
+	}
+	else {
+		nblk -= 1;
+	}
+
+    // Search for disk block id: bno.
+	if (nblk < NDIRECT) {
+        bno = dirf->f_direct[nblk];
     }
     else {
-        // Search for disk block id.
-        if (nblk < NDIRECT) {
-            bno = dirf->f_direct[nblk];
-        }
-        else {
-            bno = ((uint32_t *)disk[dirf->f_indirect].data)[nblk];
-        }
+        bno = ((uint32_t *)disk[dirf->f_indirect].data)[nblk];
     }
 
     // Step2: Find an unused pointer
-    i = dirf->f_size % BY2BLK;
-    return ((File *)disk[bno].data) + i;
+	fileblk = (File *)disk[bno].data;
+	for (i = 0; i < BY2BLK / BY2FILE; i++) {
+		if (fileblk[i].f_name[0] == 0) {
+			// this file blk is empty, can use.
+			return fileblk + i;
+		}
+	}
+	
+	// don't find, create a new block.
+	bno = make_link_block(dirf, dirf->f_size / BY2BLK);
+    return (File *)disk[bno].data;
 }
 
 // Write file to disk under specified dir.
@@ -284,7 +297,50 @@ void write_file(struct File *dirf, const char *path) {
 //      We ASSUME that this funcion will never fail
 void write_directory(struct File *dirf, char *name) {
     // Your code here
-    
+    int iblk = 0, r = 0, n = sizeof(disk[0].data);
+	uint8_t buffer[n+1], *dist;
+	File *target = create_file(dirf);
+	
+	DIR *dp;
+	struct dirent *file;
+	char *filename;
+	char buf[50];
+
+	if (target == NULL) {
+		printf("Write directory error!\n");
+		return;
+	}
+
+	dp = opendir(name);
+	if (!dp) {
+		printf("Error when open folder!\n");
+		return;
+	}
+
+	// Set File's info.
+	const char *fname = strrchr(name, '/');
+	if (fname) fname++;
+	else fname = name;
+	strcpy(target->f_name, fname);
+
+	target->f_size = 0;
+	target->f_type = FTYPE_DIR;
+	
+	// search for contents
+	while (file = readdir(dp)) {
+		sprintf(buf, "%s/%s", name, file->d_name);
+		if (strcmp(file->d_name, ".") == 0 || strcmp(file->d_name, "..") == 0) continue;
+		// this way to judge if it is a folder. IMPORTANT!
+		// because other way in the internet doesn't work.
+		if (file->d_type == DT_DIR) {
+			printf("Detected: folder: %s\n", file->d_name);
+			write_directory(target, buf);
+		}
+		else {
+			printf("Detected: file: %s\n", file->d_name);
+			write_file(target, buf);
+		}
+	}
 }
 
 int main(int argc, char **argv) {
