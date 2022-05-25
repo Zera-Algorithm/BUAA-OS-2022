@@ -610,7 +610,6 @@ int sys_read_dev(int sysno, u_int va, u_int dev, u_int len)
 	for (; round_va <= va + len - 1; round_va += BY2PG) {
 		if ( (page = page_lookup(pgdir, round_va, &pte)) == NULL) {
 			// In this time, some of va part isn't be mapped to a physical address. Failure.
-			panic("Va isn't right!\n");
 			return -E_INVAL;
 		}
 	}
@@ -649,7 +648,6 @@ int sys_read_dev(int sysno, u_int va, u_int dev, u_int len)
 		return 0;
 	}
 	else {
-		panic("Range isn't right!\n");
 		return -E_INVAL;
 	}
 }
