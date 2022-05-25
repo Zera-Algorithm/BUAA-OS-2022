@@ -143,7 +143,7 @@ fsipc_remove(const char *path)
 	req = (struct Fsreq_remove *)fsipcbuf;
 
 	// Step 3: Copy path to path in req.
-	strcpy(req->path, path);
+	strcpy(req->req_path, (u_char *)path);
 
 	// Step 4: Send request to fs server with IPC.
 	return fsipc(FSREQ_REMOVE, req, 0, 0);
