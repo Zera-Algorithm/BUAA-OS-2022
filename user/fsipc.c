@@ -4,6 +4,7 @@
 
 #define debug 0
 
+// 用户空间中：存储IPC请求数据的区域，占用1page。
 extern u_char fsipcbuf[BY2PG];		// page-aligned, declared in entry.S
 
 // Overview:
@@ -128,13 +129,24 @@ fsipc_dirty(u_int fileid, u_int offset)
 int
 fsipc_remove(const char *path)
 {
+	int i;
+	int isvalid = 0;
+	struct Fsreq_remove *req;
+
 	// Step 1: Check the length of path, decide if the path is valid.
+	for (i = 0; i < MAXPATHLEN; i++) {
+		if (path[i] == '\0') isvalid = 1;
+	}
+	if (isvalid == 0) return -E_INVAL;
 
 	// Step 2: Transform fsipcbuf to struct Fsreq_remove*
+	req = (struct Fsreq_remove *)fsipcbuf;
 
 	// Step 3: Copy path to path in req.
+	strcpy(req->path, path);
 
 	// Step 4: Send request to fs server with IPC.
+	return fsipc(FSREQ_REMOVE, req, 0, 0);
 }
 
 // Overview:

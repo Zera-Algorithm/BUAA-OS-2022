@@ -54,7 +54,11 @@ open(const char *path, int mode)
 	va = fd2data(fd);
 
 	// Step 4: Alloc memory, map the file content into memory.
-	fsipc_map(ffd->f_fileid, 0, va);
+	size = ffd->f_file.f_size;
+	for (i = 0; i < size; i += BY2PG) {
+		fsipc_map(ffd->f_fileid, i, va + i);
+		// each time map a single page for va.
+	}
 
 	// Step 5: Return the number of file descriptor.
 	return fd2num(fd);
@@ -119,12 +123,14 @@ file_read(struct Fd *fd, void *buf, u_int n, u_int offset)
 		return 0;
 	}
 
+	// 如果n大于剩下要读的内容，就修改n为之后内容的长度
 	if (offset + n > size) {
 		n = size - offset;
 	}
 
 	user_bcopy((char *)fd2data(fd) + offset, buf, n);
 	return n;
+	// 返回读或写的字节数
 }
 
 // Overview:
@@ -204,6 +210,7 @@ file_stat(struct Fd *fd, struct Stat *st)
 
 // Overview:
 //	Truncate or extend an open file to 'size' bytes
+// 截断或扩展一个文件的大小
 int
 ftruncate(int fdnum, u_int size)
 {
@@ -229,12 +236,14 @@ ftruncate(int fdnum, u_int size)
 	oldsize = f->f_file.f_size;
 	f->f_file.f_size = size;
 
+	/* Step1: Ask for more size. Mapped in fs_serv process. */
 	if ((r = fsipc_set_size(fileid, size)) < 0) {
 		return r;
 	}
 
 	va = fd2data(fd);
 
+	/* Step2: Map the extended content into my space.(Only extend can happen.) */
 	// Map any new pages needed if extending the file
 	for (i = ROUND(oldsize, BY2PG); i < ROUND(size, BY2PG); i += BY2PG) {
 		if ((r = fsipc_map(fileid, i, va + i)) < 0) {
@@ -243,7 +252,7 @@ ftruncate(int fdnum, u_int size)
 		}
 	}
 
-	// Unmap pages if truncating the file
+	/* Step3: Unmap pages if truncating the file. */
 	for (i = ROUND(size, BY2PG); i < ROUND(oldsize, BY2PG); i += BY2PG)
 		if ((r = syscall_mem_unmap(0, va + i)) < 0) {
 			user_panic("ftruncate: syscall_mem_unmap %08x: %e", va + i, r);
@@ -260,7 +269,7 @@ remove(const char *path)
 {
 	// Your code here.
 	// Call fsipc_remove.
-
+	return fsipc_remove(path);
 }
 
 // Overview:

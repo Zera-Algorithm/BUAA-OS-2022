@@ -37,7 +37,7 @@ struct Dev {
 // file descriptor
 struct Fd {
 	u_int fd_dev_id;
-	u_int fd_offset;
+	u_int fd_offset; // current seek offset
 	u_int fd_omode;
 };
 

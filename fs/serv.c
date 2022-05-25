@@ -1,6 +1,8 @@
 /*
  * File system server main loop -
  * serves IPC requests from other environments.
+ * 是一个类似服务器的进程，专门负责接收用户态的 **文件** 请求，然后调用fs.c中的函数实现。
+ * 管理 文件打开请求、文件描述符等等。
  */
 
 #include "fs.h"
@@ -14,6 +16,7 @@ struct Open {
 	int o_mode;		// open mode
 	struct Filefd *o_ff;	// va of filefd page
 };
+// fileid是归属于系统层面的文件打开号，而fdnum是用户层面拥有的文件描述符。
 
 // Max number of open files in the file system at once
 #define MAXOPEN			1024
@@ -208,10 +211,13 @@ serve_remove(u_int envid, struct Fsreq_remove *rq)
 
 	// Step 1: Copy in the path, making sure it's terminated.
 	// Notice: add \0 to the tail of the path
+	rq->req_path[MAXPATHLEN - 1] = '\0';
+	strcpy(path, rq->req_path);
 
 	// Step 2: Remove file from file system and response to user-level process.
 	// Call file_remove and ipc_send an approprite value to corresponding env.
-
+	r = file_remove(path);
+	ipc_send(envid, r, 0, 0);
 }
 
 void
