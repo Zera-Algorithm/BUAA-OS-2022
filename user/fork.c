@@ -217,6 +217,7 @@ fork(void)
 
 		/* child process: set env to its PCB */
 		tempEnvid = syscall_getenvid();
+		syscall_register_handler(__asm_signal_handler);
 
 		// writef("Child knows its id = %d.\n", tempEnvid);
 		i = (tempEnvid & ((1<<10)-1));

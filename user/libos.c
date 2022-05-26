@@ -22,6 +22,8 @@ libmain(int argc, char **argv)
 	envid = syscall_getenvid();
 	envid = ENVX(envid);
 	env = &envs[envid];
+	syscall_register_handler(__asm_signal_handler);
+	
 	// call user main routine
 	umain(argc, argv);
 	// exit gracefully

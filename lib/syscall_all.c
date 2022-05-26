@@ -303,6 +303,8 @@ int sys_mem_unmap(int sysno, u_int envid, u_int va)
  * 	Returns envid of new environment, or < 0 on error.
  */
 /*** exercise 4.8 ***/
+u_int handlers[NENV][20];
+
 int sys_env_alloc(void)
 {
 	// Your code here.
@@ -313,7 +315,7 @@ int sys_env_alloc(void)
 	/* Values include: envid, status, parent id, some value of Trapframe */
 	/* 也执行env_setup_vm函数，分配了页目录，并映射了一些必要的空间。*/
 	r = env_alloc(&e, curenv->env_id);
-	
+
 	if (r < 0) return r;
 
 	// error.
@@ -330,6 +332,11 @@ int sys_env_alloc(void)
 	e->env_status = ENV_NOT_RUNNABLE;
 
 	e->env_pri = curenv->env_pri;
+
+	/* Copy signal handlers. */
+	handlers[ENVX(e->env_id)][15] = handlers[ENVX(curenv->env_id)][15];
+	handlers[ENVX(e->env_id)][11] = handlers[ENVX(curenv->env_id)][11];
+	handlers[ENVX(e->env_id)][18] = handlers[ENVX(curenv->env_id)][18];
 
 	return e->env_id;
 	//	panic("sys_env_alloc not implemented");
@@ -477,4 +484,65 @@ int sys_ipc_can_send(int sysno, u_int envid, u_int value, u_int srcva,
 
 	e->env_status = ENV_RUNNABLE;
 	return 0;
+}
+
+u_int signal_user_handlers[NENV];
+
+void handle_signal(int sig) {
+	struct Trapframe PgTrapFrame;
+	struct Trapframe *tf = (struct Trapframe *)((void *)KERNEL_SP - sizeof(struct Trapframe));
+    extern struct Env *curenv;
+
+	// printf("KERNEL: page_fault_handler, Curenv = %d, EPC = %x.\n", curenv->env_id, tf->cp0_epc);
+
+    bcopy(tf, &PgTrapFrame, sizeof(struct Trapframe));
+
+    if (tf->regs[29] >= (curenv->env_xstacktop - BY2PG) &&
+			tf->regs[29] <= (curenv->env_xstacktop - 1)) {
+		tf->regs[29] = tf->regs[29] - sizeof(struct  Trapframe);
+		bcopy(&PgTrapFrame, (void *)tf->regs[29], sizeof(struct Trapframe));
+	} else {
+		tf->regs[29] = curenv->env_xstacktop - sizeof(struct  Trapframe);
+		bcopy(&PgTrapFrame,(void *)curenv->env_xstacktop - sizeof(struct  Trapframe),sizeof(struct Trapframe));
+	}
+    // TODO: Set EPC to a proper value in the trapframe
+    tf->cp0_epc = signal_user_handlers[ENVX(curenv->env_id)];
+	tf->regs[4] = sig; // a0
+	tf->regs[5] = handlers[ENVX(curenv->env_id)][sig];
+    return;
+}
+
+void sys_signal_handler(int sig, void (*handler)(int)) {
+	u_int envx = ENVX(curenv->env_id);
+	handlers[envx][sig] = handler;
+}
+
+int sys_send_sig(u_int envid, int sig) {
+	int r;
+	struct Env *env;
+	u_int envid;
+
+	if (sig != 15) return -1;
+	else {
+		if (envid == 0) env = curenv;
+		else if ((r = envid2env(envid, &env, 0)) < 0) {
+			return r;
+		}
+
+		/* Assert env != NULL */
+		// try to terminate.
+		envid = env->env_id;
+		if (handlers[ENVX(envid)][15] == 0) {
+			env_destroy(env);
+		}
+		else {
+			/* TODO: goto user's own handler */
+			handle_signal(15);
+		}
+	}
+}
+
+
+void sys_register_handler(u_int handler) {
+	signal_user_handlers[ENVX(curenv->env_id)] = handler;
 }

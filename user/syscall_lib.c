@@ -87,3 +87,15 @@ syscall_cgetc()
 {
 	return msyscall(SYS_cgetc, 0, 0, 0, 0, 0);
 }
+
+int syscall_send_sig(u_int envid, int sig) {
+	return msyscall(SYS_send_sig, envid, sig, 0, 0, 0);
+}
+
+int syscall_signal_handler(int sig, void (*handler)(int)) {
+	return msyscall(SYS_signal_handler, sig, handler, 0, 0, 0);
+}
+
+int syscall_register_handler(u_int handler) {
+	return msyscall(SYS_register_handler, handler, 0, 0, 0, 0);
+}

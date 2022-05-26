@@ -68,3 +68,6 @@ sys_call_table:                         // Syscall Table
     .word sys_ipc_can_send
     .word sys_ipc_recv
     .word sys_cgetc
+    .word sys_send_sig
+    .word sys_signal_handler
+    .word sys_register_handler

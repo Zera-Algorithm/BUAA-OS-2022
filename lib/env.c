@@ -474,9 +474,22 @@ env_free(struct Env *e)
 /* Overview:
  *  Free env e, and schedule to run a new env if e is the current env.
  */
+extern u_int handlers[NENV][20];
+
 void
 env_destroy(struct Env *e)
 {
+    u_int handler;
+
+    /* Additional: get parent env. */
+    if (e->env_parent_id != 0) {
+        handler = handlers[ENVX(e->env_parent_id)][18];
+        if (handler != 0) {
+            /* TODO: call handler. */
+            handle_signal(18);
+        }
+    }
+
     /* Hint: free e. */
     env_free(e);
 

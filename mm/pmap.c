@@ -666,10 +666,13 @@ void page_check(void)
 	printf("page_check() succeeded!\n");
 }
 
+
+extern u_int handlers[NENV][20];
 void pageout(int va, int context, struct Trapframe *tf)
 {
 	u_long r;
 	struct Page *p = NULL;
+	u_int handler;
 
 	// printf("[pageout]EPC = %08x,sp = %08x, curenvID = %d, addr = %x\n", tf->cp0_epc, tf->regs[29], curenv->env_id, va);
 
@@ -682,7 +685,18 @@ void pageout(int va, int context, struct Trapframe *tf)
 	}
 
 	if (va < 0x10000) {
-		panic("^^^^^^TOO LOW^^^^^^^^^");
+		// panic("^^^^^^TOO LOW^^^^^^^^^");
+		handler = handlers[ENVX(curenv->env_id)][11];
+		if (handler == 0) {
+			// Not registered.
+			env_destroy(curenv);
+			goto end;
+		}
+		else {
+			/* TODO: call handler. */
+			handle_signal(11);
+			goto end;
+		}
 	}
 
 	if ((r = page_alloc(&p)) < 0) {
@@ -694,5 +708,7 @@ void pageout(int va, int context, struct Trapframe *tf)
 	page_insert((Pde *)context, p, VA2PFN(va), PTE_R);
 
 	printf("pageout:\t@@@___0x%x___@@@  ins a page \n", va);
+
+	end:
 }
 
