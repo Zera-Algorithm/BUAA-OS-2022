@@ -245,6 +245,32 @@ fork(void)
 	return newenvid;
 }
 
+int make_shared(void *va) {
+	u_int _va = (u_int)va;
+	int pa;
+	
+	/* Step1: check va's range. */
+	if (va >= UTOP) return -1;
+
+	/* Step2: if page doesn't exist, alloc one. */
+	if ( ((*vpd)[_va >> 22] & PTE_V) == 0 ) {
+		syscall_mem_alloc(syscall_getenvid(), _va, PTE_V | PTE_R);
+	}
+	else if ( ((*vpt)[_va >> 12] & PTE_V) == 0 ) {
+		syscall_mem_alloc(syscall_getenvid(), _va, PTE_V | PTE_R);
+	}
+
+	// Assert page exists.
+	/* Step3: Check page's perm, if we don't have the right to write, fail. */
+	if ( ((*vpt)[_va >> 12] & PTE_R) == 0 ) return -1;
+
+	(*vpt)[_va >> 12] |= PTE_LIBRARY;
+
+	/* Step4: Calc Physical Address. */
+	pa = ROUNDDOWN((*vpt)[_va >> 12], BY2PG);
+	return pa;
+}
+
 // Challenge!
 int
 sfork(void)

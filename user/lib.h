@@ -37,6 +37,7 @@ __attribute__((noreturn));
 int spawn(char *prog, char **argv);
 int spawnl(char *prot, char *args, ...);
 int fork(void);
+int make_shared(void* va);
 
 void user_bcopy(const void *src, void *dst, size_t len);
 void user_bzero(void *v, u_int n);
