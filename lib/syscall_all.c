@@ -558,9 +558,9 @@ int sys_write_dev(int sysno, u_int va, u_int dev, u_int len)
 			*dev_data = *p_buf; // write bytes to device.
 			dev_data += 1;
 			p_buf += 1;
-			if (((u_int)p_buf) % BY2PG == 0) {
+			if (((u_int)p_buf) % BY2PG == 0 && i != len - 1) {
 				// change to another page.
-				page = page_lookup(pgdir, va, &pte);
+				page = page_lookup(pgdir, va+i+1, &pte);
 				p_buf = (char *)page2kva(page);
 			}
 		}
@@ -639,9 +639,9 @@ int sys_read_dev(int sysno, u_int va, u_int dev, u_int len)
 			// printf("Read from disk %x.\n", dev_data);
 			dev_data += 1;
 			p_buf += 1;
-			if (((u_int)p_buf) % BY2PG == 0) {
-				// change to another page.
-				page = page_lookup(pgdir, va, &pte);
+			if (((u_int)p_buf) % BY2PG == 0 && i != len - 1) {
+				// not the last byte, change to another page.
+				page = page_lookup(pgdir, va+i+1, &pte); // don't forget to change va.
 				p_buf = (char *)page2kva(page);
 			}
 		}
