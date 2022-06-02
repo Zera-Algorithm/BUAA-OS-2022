@@ -21,6 +21,7 @@ void print_data(int data[], const char* prefix, int size) {
     writef("\n");
 }
 
+int buffer[128*20];
 void umain(void) {
     /* 检查 time read */
     int time = time_read();
@@ -47,4 +48,6 @@ void umain(void) {
         }
     }
     writef("Your raid0 write & read are basically correct\n");
+	// below is my code.
+	// raid0_read(0, buffer, 20);
 }

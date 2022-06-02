@@ -32,7 +32,8 @@ ide_read(u_int diskno, u_int secno, void *dst, u_int nsecs)
 	int abs_offset = 0, status;
 	char command = 0;
 	int ret;
-
+		
+	writef("diskno: %d\n", diskno);
 	/* Step1: set IDE_ID. */
 	// make C compiler use diskno as a memory address, not register.
 	// Now I know why stack need to alloc 4 empty positions for arguments.
@@ -141,9 +142,11 @@ void raid0_read(u_int secno, void *dst, u_int nsecs) {
 	for (secno_now = secno; secno_now < secno + nsecs; secno_now++) {
 		if (secno_now % 2 == 0) {
 			ide_read(1, secno_now/2, dst + (secno_now-secno) * 0x200, 1);
+			// writef("read disk1, secno = %u\n", secno_now/2);
 		}
 		else {
 			ide_read(2, secno_now/2, dst + (secno_now-secno) * 0x200, 1);
+			// writef("read disk2, secno = %u\n", secno_now/2);
 		}
 	}
 }
