@@ -124,6 +124,30 @@ ide_write(u_int diskno, u_int secno, void *src, u_int nsecs)
 	}
 }
 
+void raid0_write(u_int secno, void *src, u_int nsecs) {
+	u_int secno_now;
+	for (secno_now = secno; secno_now < secno + nsecs; secno_now++) {
+		if (secno_now % 2 == 0) {
+			ide_write(1, secno_now/2, src + (secno_now-secno) * 0x200, 1);
+		}
+		else {
+			ide_write(2, secno_now/2, src + (secno_now-secno) * 0x200, 1);
+		}
+	}
+}
+
+void raid0_read(u_int secno, void *dst, u_int nsecs) {
+	u_int secno_now;
+	for (secno_now = secno; secno_now < secno + nsecs; secno_now++) {
+		if (secno_now % 2 == 0) {
+			ide_read(1, secno_now/2, dst + (secno_now-secno) * 0x200, 1);
+		}
+		else {
+			ide_read(2, secno_now/2, dst + (secno_now-secno) * 0x200, 1);
+		}
+	}
+}
+
 int time_read() {
 	int time;
 	syscall_read_dev(&time, 0x15000000, 1); // trigger update
