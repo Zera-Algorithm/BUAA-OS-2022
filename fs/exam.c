@@ -21,33 +21,23 @@ void print_data(int data[], const char* prefix, int size) {
     writef("\n");
 }
 
-int buffer[128*20];
 void umain(void) {
     /* 检查 time read */
     int time = time_read();
     writef("current time is: %d\n", time);
     /* 检查 raid0 write & read */
-    int data[2][128], read[2][128], i;
-    init_data(data[0], 256);
-    print_data(data[0], "Standard data is: \n", 256);
-    raid0_write(25, data[0], 2);	/* 写入扇区 25 26*/
-    ide_read(2, 12, read[0], 1);
-    ide_read(1, 13, read[1], 1);
-    for (i = 0; i < 128; i++) {
-        if (data[0][i] != read[0][i] || data[1][i] != read[1][i]) {
-            print_data(read[0], "Data you wrote in disk is: \n", 256);
-            user_panic("Data written by raid0_write is incorrect");
-        }
-    }
-    user_bzero(read[0], 1024);
-    raid0_read(25, read[0], 2);
-    for (i = 0; i < 128; i++) {
-        if (data[0][i] != read[0][i] || data[1][i] != read[1][i]) {
-            print_data(read[0], "Data read by raid0_read is: \n", 256);
-            user_panic("Data read by raid0_read is incorrect");
-        }
-    }
-    writef("Your raid0 write & read are basically correct\n");
-	// below is my code.
-	// raid0_read(0, buffer, 20);
+    int data[6][128], read[6][128], i, j;
+    init_data(data[0], 128*6);
+    print_data(data[0], "Standard data is: \n", 128*6);
+
+	raid0_write(24, data[0], 6);
+	raid0_read(24, read[0], 6);
+	/*for (i = 0; i < 128; i++) {
+		for (j = 0; j < 6; j++) {
+			writef("i = %d, j = %d, data = %d, read = %d\n", i, j, data[j][i], read[j][i]);
+			if (data[j][i] != read[j][i]) {
+				user_panic("Read error!");
+			}
+		}
+	}*/
 }

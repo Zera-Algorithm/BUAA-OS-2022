@@ -560,7 +560,7 @@ int sys_write_dev(int sysno, u_int va, u_int dev, u_int len)
 			p_buf += 1;
 			if (((u_int)p_buf) % BY2PG == 0) {
 				// change to another page.
-				page = page_lookup(pgdir, va, &pte);
+				page = page_lookup(pgdir, va+i+1, &pte);
 				p_buf = (char *)page2kva(page);
 			}
 		}
@@ -641,7 +641,7 @@ int sys_read_dev(int sysno, u_int va, u_int dev, u_int len)
 			p_buf += 1;
 			if (((u_int)p_buf) % BY2PG == 0) {
 				// change to another page.
-				page = page_lookup(pgdir, va, &pte);
+				page = page_lookup(pgdir, va+i+1, &pte);
 				p_buf = (char *)page2kva(page);
 			}
 		}
