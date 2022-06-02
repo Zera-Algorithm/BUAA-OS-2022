@@ -221,7 +221,7 @@ fork(void)
 		// writef("Child knows its id = %d.\n", tempEnvid);
 		i = (tempEnvid & ((1<<10)-1));
 		env = envs + i;
-
+ 
 		// writef("child process finish fork. sys_env_alloc@ret_value = %d.\n", newenvid);
 	}
 	else { // parent process
