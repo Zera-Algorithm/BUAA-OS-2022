@@ -123,3 +123,10 @@ ide_write(u_int diskno, u_int secno, void *src, u_int nsecs)
 		offset += 0x200;
 	}
 }
+
+int time_read() {
+	int time;
+	syscall_read_dev(&time, 0x15000000, 1); // trigger update
+	syscall_read_dev(&time, 0x15000010, 4);
+	return time;
+}
