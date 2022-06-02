@@ -30,7 +30,7 @@ objects		  := $(boot_dir)/start.o			  \
 all: $(modules) vmlinux
 
 run: all
-	/OSLAB/gxemul -E testmips -C R3000 -M 64 -d 0:gxemul/fs.img $(vmlinux_elf) -d 1:gxemul/fs1.img -d 2:gxemul/fs2.img
+	/OSLAB/gxemul -E testmips -C R3000 -M 64 -d 0:gxemul/fs.img -d 1:gxemul/fs1.img -d 2:gxemul/fs2.img $(vmlinux_elf)
 
 vmlinux: $(modules)
 	$(LD) -o $(vmlinux_elf) -N -T $(link_script) $(objects)
