@@ -2,7 +2,7 @@
 
 int main() {
 	int t;
-	t = 5;
-	printf("hello World! pid=%d.", t);
+	t = (3+4 == 6);
+	printf("hello World! t=%d.\n", t);
 	return 0;
 }

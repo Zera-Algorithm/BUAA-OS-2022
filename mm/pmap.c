@@ -423,6 +423,7 @@ void page_decref(struct Page *pp) {
 
 // Overview:
 // 	Unmaps the physical page at virtual address `va`.
+// 如果之前并没有映射，则直接返回即可
 void page_remove(Pde *pgdir, u_long va)
 {
 	Pte *pagetable_entry;

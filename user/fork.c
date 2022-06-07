@@ -162,19 +162,24 @@ duppage(u_int envid, u_int pn)
 	Pte item;
 	addr = (pn << 12);
 	int ret;
-	// if the pgtable is not in page dir, then skip. // not necessary for mapping.
+	// Step1: if the pgtable is not in page dir, then skip. // not necessary for mapping.
 	if ( (*vpd)[(pn >> 10) & 0x3FF] & PTE_V) {
-		item = (*vpt)[pn]; // pre-condition: pn's pgtable is valid.
+		item = (*vpt)[pn];
+		// Step2: check pgtable's validity.
+		// pre-condition: pn's pgtable is valid.
 		if (item & PTE_V) {
-			// need the page is Valid.
+			// Step3: 根据页面的标志位，决定是只映射，还是标记为PTE_COW再映射。
 			if ((item & PTE_R) == 0 || (item & PTE_COW) != 0 || (item & PTE_LIBRARY) != 0) {
+				// 只要共同映射就行了，不需要标记为PTE_COW页。
+				// 重点注意PTE_LIBRARY选项，此选项表示该页内存在父子进程之间共享，不需要再分配新的内存页
+				// 也就是说PTE_LIBRARY内存页共享读写。
 				ret = syscall_mem_map(env->env_id, addr, envid, addr, item & 0xfff);
 			}
 			else if ((item & PTE_R) != 0) {
+				// 可写的页，用PTE_COW标志位标记，以便在父子进程一方写入内存的时候进行拷贝工作。
 				(*vpt)[pn] = (item | PTE_COW);
 				ret = syscall_mem_map(env->env_id, addr, envid, addr, (item | PTE_COW) & 0xfff);
 			}
-			// writef("duppage -> syscall_mem_map: ret = %d, addr = %x\n", ret, pn << 12);
 		}
 	}
 	//	user_panic("duppage not implemented");

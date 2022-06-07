@@ -21,11 +21,12 @@ struct Dev devpipe =
 #define BY2PIPE 32		// small to provoke races
 
 struct Pipe {
-	u_int p_rpos;		// read position
-	u_int p_wpos;		// write position
+	u_int p_rpos;		// read position(下一个要读的地方)
+	u_int p_wpos;		// write position(下一个要写的地方)
 	u_char p_buf[BY2PIPE];	// data buffer
 };
 
+// 创建pipe管道，并将文件描述符写入到pfd中
 int
 pipe(int pfd[2])
 {
@@ -33,6 +34,7 @@ pipe(int pfd[2])
 	struct Fd *fd0, *fd1;
 
 	// allocate the file descriptor table entries
+	// Step1: 分配自身的fd控制符，并为其分配一页内存（分配的内存都是PTE_LIBRARY类型，在父子进程中共享）
 	if ((r = fd_alloc(&fd0)) < 0
 	||  (r = syscall_mem_alloc(0, (u_int)fd0, PTE_V|PTE_R|PTE_LIBRARY)) < 0)
 		goto err;
@@ -40,7 +42,8 @@ pipe(int pfd[2])
 	if ((r = fd_alloc(&fd1)) < 0
 	||  (r = syscall_mem_alloc(0, (u_int)fd1, PTE_V|PTE_R|PTE_LIBRARY)) < 0)
 		goto err1;
-
+	
+	// Step2: 为fd所指向的空间分配一页地址（PTE_LIBRARY），并将两个描述符都指向同一个地址
 	// allocate the pipe structure as first data page in both
 	va = fd2data(fd0);
 	if ((r = syscall_mem_alloc(0, va, PTE_V|PTE_R|PTE_LIBRARY)) < 0)
@@ -84,9 +87,19 @@ _pipeisclosed(struct Fd *fd, struct Pipe *p)
 	// to the total number of readers and writers, then
 	// everybody left is what fd is.  So the other end of
 	// the pipe is closed.
-	int pfd,pfp,runs;
+	int pfd,pfp,runs,isclose;
 	
-
+	runs = env->env_runs;
+	while (1) {
+		isclose = (pageref(fd) == pageref(p));
+		if (runs == env->env_runs) {
+			// 上次获取env_runs和此次获取env_runs之间没有被打断
+			// 也意味着pageref(fd)和pageref(p)是一次连续运行过程中获取到的值
+			return isclose;
+		}
+		// 被打断了
+		runs = env->env_runs;
+	}
 
 
 	user_panic("_pipeisclosed not implemented");
@@ -106,6 +119,7 @@ pipeisclosed(int fdnum)
 	return _pipeisclosed(fd, p);
 }
 
+// offset我理解为写入vbuf的偏移，不知道是不是？
 static int
 piperead(struct Fd *fd, void *vbuf, u_int n, u_int offset)
 {
@@ -115,13 +129,34 @@ piperead(struct Fd *fd, void *vbuf, u_int n, u_int offset)
 	// to yield (because the pipe is empty), only yield if
 	// you have not yet copied any bytes.  (If you have copied
 	// some bytes, return what you have instead of yielding.)
+
 	// If the pipe is empty and closed and you didn't copy any data out, return 0.
 	// Use _pipeisclosed to check whether the pipe is closed.
 	int i;
 	struct Pipe *p;
-	char *rbuf;
+	char *rbuf = (char *)vbuf;
 	
+	p = (struct Pipe *)fd2data(fd);
+	// Step1: We can't read, need to yield and wait.
+	if (p->p_rpos >= p->p_wpos) {
+		while (p->p_rpos >= p->p_wpos) {
+			// Step2: 判断是不是因为管道关闭而无法读取了
+			if (_pipeisclosed(fd, p)) {
+				return 0;
+			}
+			// Step3: 管道未关闭，yeild and wait
+			syscall_yield();
+		}
+	}
 
+	// Step4: 上一步等待状态结束，或者本来rpos < wpos, 能读取
+	for (i = 0; i < n; i++) {
+		if (p->p_rpos < p->p_wpos) {
+			rbuf[offset + i] = p->p_buf[p->p_rpos % BY2PIPE];
+			p->p_rpos += 1;
+		}
+	}
+	return i; // 返回读取的字符数
 
 	user_panic("piperead not implemented");
 //	return -E_INVAL;
@@ -139,11 +174,26 @@ pipewrite(struct Fd *fd, const void *vbuf, u_int n, u_int offset)
 	// Use _pipeisclosed to check whether the pipe is closed.
 	int i;
 	struct Pipe *p;
-	char *wbuf;
+	char *wbuf = (char *)vbuf;
 	
+	p = (struct Pipe *)fd2data(fd);
+	// Step1: We can't write, need to yield and wait.
+	if (p->p_wpos - p->p_rpos >= BY2PIPE) {
+		while (p->p_wpos - p->p_rpos >= BY2PIPE) {
+			if (_pipeisclosed(fd, p)) {
+				return 0;
+			}
+			syscall_yield();
+		}
+	}
 
-//	return -E_INVAL;
-	
+	for (i = 0; i < n; i++) {
+		if (p->p_wpos - p->p_rpos < BY2PIPE) {
+			p->p_buf[p->p_wpos % BY2PIPE] = wbuf[offset + i];
+			p->p_wpos += 1;
+		}
+	}
+	return i;
 	
 	user_panic("pipewrite not implemented");
 
@@ -162,6 +212,8 @@ pipestat(struct Fd *fd, struct Stat *stat)
 static int
 pipeclose(struct Fd *fd)
 {
+	// 先关fd再关pipe，防止pageref(pipe) = pageref(fd)
+	syscall_mem_unmap(0, fd);
 	syscall_mem_unmap(0, fd2data(fd));
 	return 0;
 }

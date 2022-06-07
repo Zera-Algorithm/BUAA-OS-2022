@@ -140,6 +140,9 @@ close_all(void)
 	}
 }
 
+// 将oldfdnum对应的fd描述符和数据区域全部拷贝到newfdnum所对应的区域。
+// err1: oldfdnum不存在
+// err2: 内存映射失败。
 int
 dup(int oldfdnum, int newfdnum)
 {
@@ -147,20 +150,18 @@ dup(int oldfdnum, int newfdnum)
 	u_int ova, nva, pte;
 	struct Fd *oldfd, *newfd;
 
+	/* Step1: 查询oldfdnum是否存在 */
 	if ((r = fd_lookup(oldfdnum, &oldfd)) < 0) {
 		return r;
 	}
 
+	/* Step2: 关闭newfdnum对应的fd，并计算oldfd和newfd对应的data区域 */
 	close(newfdnum);
 	newfd = (struct Fd *)INDEX2FD(newfdnum);
 	ova = fd2data(oldfd);
 	nva = fd2data(newfd);
 
-	if ((r = syscall_mem_map(0, (u_int)oldfd, 0, (u_int)newfd,
-							 ((*vpt)[VPN(oldfd)]) & (PTE_V | PTE_R | PTE_LIBRARY))) < 0) {
-		goto err;
-	}
-
+	/* Step4: 将oldfd的data区域映射到newfd的data区域 */
 	if ((* vpd)[PDX(ova)]) {
 		for (i = 0; i < PDMAP; i += BY2PG) {
 			pte = (* vpt)[VPN(ova + i)];
@@ -175,6 +176,13 @@ dup(int oldfdnum, int newfdnum)
 		}
 	}
 
+	/* Step3: 将oldfd的fd映射到newfd */
+	if ((r = syscall_mem_map(0, (u_int)oldfd, 0, (u_int)newfd,
+							 ((*vpt)[VPN(oldfd)]) & (PTE_V | PTE_R | PTE_LIBRARY))) < 0) {
+		goto err;
+	}
+
+	// Step5: 返回新的fdnum。
 	return newfdnum;
 
 err:

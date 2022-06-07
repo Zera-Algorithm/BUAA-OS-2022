@@ -7,6 +7,7 @@
 #define debug 0
 
 #define MAXFD 32
+// FileBase: 从FileBase地址开始，MOS为每个FD都分配4M虚拟空间用来存储文件的内容映射。
 #define FILEBASE 0x60000000
 #define FDTABLE (FILEBASE-PDMAP)
 // 从进程的FDTABLE开始，一页给一个fd。(每个fd占用一个page)

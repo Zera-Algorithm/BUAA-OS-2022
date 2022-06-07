@@ -431,6 +431,7 @@ env_create(u_char *binary, int size)
 /* Overview:
  *  Free env e and all memory it uses.
  */
+// 所有内核态的函数在运行过程中都不会被打断
 void
 env_free(struct Env *e)
 {
@@ -457,6 +458,9 @@ env_free(struct Env *e)
         /* Hint: free the page table itself. */
         e->env_pgdir[pdeno] = 0;
         page_decref(pa2page(pa));
+
+        /* Hint: invalidate page table in TLB */
+        tlb_invalidate(e->env_pgdir, UVPT + (pdeno << PGSHIFT));
     }
     /* Hint: free the page directory. */
     pa = e->env_cr3;
@@ -465,6 +469,10 @@ env_free(struct Env *e)
     /* Hint: free the ASID */
     asid_free(e->env_id >> (1 + LOG2NENV));
     page_decref(pa2page(pa));
+
+    /* Hint: invalidate page directory in TLB. */
+    tlb_invalidate(e->env_pgdir, UVPT + (UVPT >> 10));
+
     /* Hint: return the environment to the free list. */
     e->env_status = ENV_FREE;
     LIST_INSERT_HEAD(&env_free_list, e, env_link);
@@ -527,6 +535,9 @@ env_run(struct Env *e)
 	// printf("B. change curenv...\n");
     /* Step 2: Set 'curenv' to the new environment. */
     curenv = e;
+
+    // 维护env_runs: 进程的被调度次数
+    e->env_runs += 1;
 	
 	// printf("C. load context...\n");
     /* Step 3: Use lcontext() to switch to its address space. */
