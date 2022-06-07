@@ -36,6 +36,7 @@
 #define PTE_V		0x0200	// Valid bit
 #define PTE_R		0x0400	// Dirty bit ,'0' means only read ,otherwise make interrupt
 #define PTE_D		0x0002	// fileSystem Cached is dirty
+// 文件系统的块缓存已经写入数据，该块是脏块
 #define PTE_COW		0x0001	// Copy On Write
 #define PTE_UC		0x0800	// unCached
 #define PTE_LIBRARY		0x0004	// share memmory

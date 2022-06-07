@@ -282,6 +282,7 @@ env_alloc(struct Env **new, u_int parent_id)
  * Annotate: user_data = struct Env *e
  */
 /*** exercise 3.6 ***/
+#define min(a, b) ((a) > (b) ? (b) : (a))
 static int load_icode_mapper(u_long va, u_int32_t sgsize,
                              u_char *bin, u_int32_t bin_size, void *user_data)
 {
@@ -293,31 +294,29 @@ static int load_icode_mapper(u_long va, u_int32_t sgsize,
     u_long nowVA = ROUNDDOWN(va, BY2PG);
 	Pte *pte;
 	
-	// printf("va = %x.\n", va);
     /* Step 1: load all content of bin into memory. */
-    if ((r = page_alloc(&p)) < 0)
-        return r;   /* Out Of Memory! */
-    page_insert(env->env_pgdir, p, nowVA, PTE_V | PTE_R);
-	/* begin debug */
-	// pgdir_walk(env->env_pgdir, nowVA, 0, &pte);
-	// printf("Map VA(%x) to PA(%x), pageKVA = %x\n", nowVA, PTE_ADDR(*pte), page2kva(p));
-	/* end debug */
+    p = page_lookup(env->env_pgdir, va, &pte); 
+    // 先查查第一页是否已经有页面映射过了，如果有，直接用当时的page，把后面的部分清空就可以
+    if (offset == 0 || p == NULL) {
+        if ((r = page_alloc(&p)) < 0)
+            return r;   /* Out Of Memory! */
+        page_insert(env->env_pgdir, p, nowVA, PTE_V | PTE_R);
+    }
+    else {
+        // 此时p != NULL
+        // 需要把该页的属于该段的空间映射出去
+        bzero(page2kva(p)+offset, min(BY2PG - offset, bin_size));
+    }
 	
     /* Condition: |---(----)---| Only One Page */
-	// printf("bin[0] = %x, offset = %x\n", *(int *)bin, offset);
     if (offset + bin_size <= BY2PG) {
-		// printf("branch 1\n");
         bcopy(bin, (page2kva(p) + offset), bin_size);
-		// printf("branch 1: end bcopy\n");
-		// printf("VA_DATA = %x\n", *(int *)(page2kva(p) + offset));
 		i += BY2PG;
 		nowVA += BY2PG;
     }
     else {
-		// printf("branch 2\n");
         /* Condition: |----(----|---------|----)---| */
         bcopy(bin, (void *)(page2kva(p) + offset), BY2PG - offset);
-		// printf("VA_DATA = %x\n", *(int *)(page2kva(p) + offset));
         for (i = BY2PG - offset, nowVA += BY2PG; i < bin_size; i += BY2PG, nowVA += BY2PG) {
             /* Hint: You should alloc a new page. */
             if ((r = page_alloc(&p)) < 0) return r; /* OUT OF MEMORY */
@@ -332,7 +331,6 @@ static int load_icode_mapper(u_long va, u_int32_t sgsize,
             }
         }
     }
-    // printf("Mapper: pte = %x.\n", *((int *)KADDR(PTE_ADDR(*pte))+0xc));
     /* Step 2: alloc pages to reach `sgsize` when `bin_size` < `sgsize`.
      * hint: variable `i` has the value of `bin_size` now! */
     while (i < sgsize) {

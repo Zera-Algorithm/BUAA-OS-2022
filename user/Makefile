@@ -21,6 +21,7 @@ USERLIB := printf.o \
 CFLAGS += -nostdlib -static
 
 all: echo.x echo.b num.x num.b testptelibrary.b testptelibrary.x testarg.b testpipe.x testpiperace.x icode.x init.b sh.b cat.b ls.b\
+	bigarray.x bigarray.b \
 	devtst.x devtst.b tltest.x tltest.b fktest.x fktest.b pingpong.x pingpong.b idle.x fstest.x fstest.b $(USERLIB) entry.o syscall_wrap.o
 
 %.x: %.b.c 

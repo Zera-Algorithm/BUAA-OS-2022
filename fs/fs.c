@@ -87,7 +87,7 @@ map_block(u_int blockno)
 	if(block_is_mapped(blockno)) return 0;
 
 	// Step 2: Alloc a page of memory for this block via syscall.
-	r = syscall_mem_alloc(syscall_getenvid(), diskaddr(blockno), PTE_V | PTE_R);
+	r = syscall_mem_alloc(0, diskaddr(blockno), PTE_V | PTE_R);
 	return r;
 }
 
@@ -113,7 +113,7 @@ unmap_block(u_int blockno)
 	}
 
 	// Step 3: use 'syscall_mem_unmap' to unmap corresponding virtual memory.
-	syscall_mem_unmap(syscall_getenvid(), diskaddr(blockno));
+	syscall_mem_unmap(0, diskaddr(blockno));
 
 	// Step 4: validate result of this unmap operation.
 	user_assert(!block_is_mapped(blockno));
@@ -528,7 +528,7 @@ file_get_block(struct File *f, u_int filebno, void **blk)
 }
 
 // Overview:
-//	Mark the offset/BY2BLK'th block dirty in file f by writing its first word to itself.
+//	Mark the offset/BY2BLK'th block dirty in file f by writing its first char to itself.
 int
 file_dirty(struct File *f, u_int offset)
 {
@@ -539,6 +539,7 @@ file_dirty(struct File *f, u_int offset)
 		return r;
 	}
 
+	// 有疑问：为什么这能使得这页变脏？这种操作修改了页的PTE_D标志位了吗？
 	*(volatile char *)blk = *(volatile char *)blk;
 	return 0;
 }
@@ -632,6 +633,7 @@ dir_alloc_file(struct File *dir, struct File **file)
 
 // Overview:
 //	Skip over slashes.
+// 在读取字符串时跳过左斜线 '/'
 char *
 skip_slash(char *p)
 {
@@ -845,6 +847,7 @@ file_flush(struct File *f)
 
 // Overview:
 //	Sync the entire file system.  A big hammer.
+// 扫描所有磁盘块，将整个文件系统的变更全部同步到磁盘上。
 void
 fs_sync(void)
 {

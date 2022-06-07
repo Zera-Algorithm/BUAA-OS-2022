@@ -1,3 +1,5 @@
+// file.c: 普通用户态文件访问函数集合
+
 #include "lib.h"
 #include <fs.h>
 

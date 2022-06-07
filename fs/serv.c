@@ -21,6 +21,7 @@ struct Open {
 // Max number of open files in the file system at once
 #define MAXOPEN			1024
 #define FILEVA 			0x60000000
+// 从FILEVA开始，每一页都保存一个Filefd结构体
 
 // initialize to force into data section
 struct Open opentab[MAXOPEN] = { { 0, 0, 1 } };
@@ -30,6 +31,7 @@ struct Open opentab[MAXOPEN] = { { 0, 0, 1 } };
 
 // Overview:
 //	Initialize file system server process.
+// 初始化opentab：文件打开信息表
 void
 serve_init(void)
 {
@@ -41,8 +43,8 @@ serve_init(void)
 
 	// Initial array opentab.
 	for (i = 0; i < MAXOPEN; i++) {
-		opentab[i].o_fileid = i;
-		opentab[i].o_ff = (struct Filefd *)va;
+		opentab[i].o_fileid = i; // 系统层面的顺序id号
+		opentab[i].o_ff = (struct Filefd *)va; // 从FILEVA开始的Filefd缓冲块
 		va += BY2PG;
 	}
 }
@@ -62,7 +64,7 @@ open_alloc(struct Open **o)
 										   PTE_V | PTE_R | PTE_LIBRARY)) < 0) {
 					return r;
 				}
-			case 1:
+			case 1: // 这一句有点看不懂？明明opentab[i].o_ff有映射，为什么还要清空再分配？
 				opentab[i].o_fileid += MAXOPEN;
 				*o = &opentab[i];
 				user_bzero((void *)opentab[i].o_ff, BY2PG);
@@ -119,6 +121,7 @@ serve_open(u_int envid, struct Fsreq_open *rq)
 	fileid = r;
 
 	// Open the file.
+	// file_open是为了获取文件的File *指针。
 	if ((r = file_open((char *)path, &f)) < 0) {
 	//	user_panic("file_open failed: %d, invalid path: %s", r, path);
 		ipc_send(envid, r, 0, 0);
@@ -248,6 +251,7 @@ serve_sync(u_int envid)
 	ipc_send(envid, 0, 0, 0);
 }
 
+// 主轮询函数
 void
 serve(void)
 {

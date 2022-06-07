@@ -45,6 +45,7 @@ struct Block {
 } disk[NBLOCK];
 
 // reverse: mutually transform between little endian and big endian.
+// 以大端格式将数据p转化
 void reverse(uint32_t *p) {
     uint8_t *x = (uint8_t *) p;
     uint32_t y = *(uint32_t *) x;
