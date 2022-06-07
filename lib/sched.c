@@ -14,11 +14,12 @@
 /*** exercise 3.15 ***/
 void sched_yield(void)
 {
-	// env_run(LIST_FIRST(env_sched_list));
 	static struct Env *e;
     static int count = 0; // remaining time slices of current env
     static int point = 0; // current env_sched_list index
-    
+    // printf("Sched_yield. envid = %d\n", curenv ? curenv->env_id : 0);
+    e = curenv; // 需要加上这一句，因为如果有程序自己退出了，这里的e应该还是上次的e，会出现错误
+
     /*  hint:
      *  1. if (count==0), insert `e` into `env_sched_list[1-point]`
      *     using LIST_REMOVE and LIST_INSERT_TAIL.
