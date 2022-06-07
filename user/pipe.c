@@ -207,13 +207,13 @@ pipewrite(struct Fd *fd, const void *vbuf, u_int n, u_int offset)
 				}
 				syscall_yield();
 			}
+			p->p_buf[p->p_wpos % BY2PIPE] = wbuf[i];
+			p->p_wpos += 1;
 		}
 	}
 	return i;
 	
 	user_panic("pipewrite not implemented");
-
-	return n;
 }
 
 static int
