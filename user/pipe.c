@@ -119,7 +119,7 @@ pipeisclosed(int fdnum)
 	return _pipeisclosed(fd, p);
 }
 
-// offset我理解为写入vbuf的偏移，不知道是不是？
+// offset的值应该没用
 static int
 piperead(struct Fd *fd, void *vbuf, u_int n, u_int offset)
 {
@@ -152,8 +152,11 @@ piperead(struct Fd *fd, void *vbuf, u_int n, u_int offset)
 	// Step4: 上一步等待状态结束，或者本来rpos < wpos, 能读取
 	for (i = 0; i < n; i++) {
 		if (p->p_rpos < p->p_wpos) {
-			rbuf[offset + i] = p->p_buf[p->p_rpos % BY2PIPE];
+			rbuf[i] = p->p_buf[p->p_rpos % BY2PIPE];
 			p->p_rpos += 1;
+		}
+		else {
+			break;
 		}
 	}
 	return i; // 返回读取的字符数
@@ -167,9 +170,13 @@ pipewrite(struct Fd *fd, const void *vbuf, u_int n, u_int offset)
 {
 	// Your code here.  See the lab text for a description of what 
 	// pipewrite needs to do.  Write a loop that transfers one byte
-	// at a time.  Unlike in read, it is not okay to write only some
-	// of the data.  If the pipe fills and you've only copied some of
-	// the data, wait for the pipe to empty and then keep copying.
+	// at a time.  
+
+	// Unlike in read, it is not okay to write only some
+	// of the data.
+	
+	//  If the pipe fills and you've only copied some of
+	// the data, **wait for the pipe** to empty and then keep copying.
 	// If the pipe is full and closed, return 0.
 	// Use _pipeisclosed to check whether the pipe is closed.
 	int i;
@@ -189,8 +196,17 @@ pipewrite(struct Fd *fd, const void *vbuf, u_int n, u_int offset)
 
 	for (i = 0; i < n; i++) {
 		if (p->p_wpos - p->p_rpos < BY2PIPE) {
-			p->p_buf[p->p_wpos % BY2PIPE] = wbuf[offset + i];
+			p->p_buf[p->p_wpos % BY2PIPE] = wbuf[i];
 			p->p_wpos += 1;
+		}
+		else {
+			// wait until we can write next byte.
+			while(p->p_wpos - p->p_rpos >= BY2PIPE) {
+				if (_pipeisclosed(fd, p)) {
+					return i;
+				}
+				syscall_yield();
+			}
 		}
 	}
 	return i;
