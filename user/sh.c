@@ -173,7 +173,7 @@ again:
 			else {
 				dup(p[0], 0);
 				close(p[0]);
-				close[p[1]];
+				close(p[1]);
 				goto again;
 			}
 
