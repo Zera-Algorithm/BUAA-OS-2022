@@ -196,7 +196,7 @@ runit:
 	}
 
 	if ((r = spawn(argv[0], argv)) < 0)
-		writef("spawn %s: %e\n", argv[0], r);
+		writef("spawn %s: %d\n", argv[0], r);
 	close_all();
 	if (r >= 0) {
 		if (debug_) writef("[%08x] WAIT %s %08x\n", env->env_id, argv[0], r);

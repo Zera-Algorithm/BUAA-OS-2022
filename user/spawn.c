@@ -212,7 +212,8 @@ int spawn(char *prog, char **argv)
 	// Note 0: some variable may be not used,you can cancel them as you like
 	// Step 1: Open the file specified by `prog` (prog is the path of the program)
 	if((r=open(prog, O_RDONLY))<0){
-		user_panic("spawn ::open line 102 RDONLY wrong !\n");
+		// user_panic("spawn ::open line 102 RDONLY wrong !\n");
+		writef("spawn ::open line 102 RDONLY wrong !\n");
 		return r;
 	}
 	// Your code begins here
@@ -224,7 +225,9 @@ int spawn(char *prog, char **argv)
 	size = stat.st_size;
 
 	if (size < 4 || !usr_is_elf_format((u_char *)blk)) {
-		user_panic("the binary file isn't an executable program.\n");
+		// user_panic("the binary file isn't an executable program.\n");
+		writef("the binary file isn't an executable program.\n");
+		return -E_INVAL;
 	}
 
 	// Step 2: Allocate an env (Hint: using syscall_env_alloc())
