@@ -33,6 +33,7 @@ _gettoken(char *s, char **p1, char **p2)
 	*p1 = 0;
 	*p2 = 0;
 
+	// s是空白符
 	while(strchr(WHITESPACE, *s))
 		*s++ = 0;
 	if(*s == 0) {
@@ -47,10 +48,10 @@ _gettoken(char *s, char **p1, char **p2)
 //		if (debug_ > 1) writef("TOK %c\n", t);
 		return t;
 	}
-	*p1 = s;
+	*p1 = s; // p1指向的位置不是空白符和特殊符号
 	while(*s && !strchr(WHITESPACE SYMBOLS, *s))
 		s++;
-	*p2 = s;
+	*p2 = s; // p2刚刚越过token
 	if (debug_ > 1) {
 		t = **p2;
 		**p2 = 0;
@@ -60,6 +61,7 @@ _gettoken(char *s, char **p1, char **p2)
 	return 'w';
 }
 
+// s == 0: 获取上一次到后面的字符串
 int
 gettoken(char *s, char **p1)
 {
@@ -106,12 +108,32 @@ again:
 			}
 			// Your code here -- open t for reading,
 			// dup it onto fd 0, and then close the fd you got.
-			user_panic("< redirection not implemented");
+			fdnum = open(t, O_RDONLY); // 以只读方式打开文件
+			if (fdnum < 0) {
+				writef("File error: < cannot open the file!\n");
+				exit();
+			}
+			dup(fdnum, 0);
+			close(fdnum);
+
+			// user_panic("< redirection not implemented");
 			break;
 		case '>':
 			// Your code here -- open t for writing,
 			// dup it onto fd 1, and then close the fd you got.
-			user_panic("> redirection not implemented");
+			if(gettoken(0, &t) != 'w'){
+				writef("syntax error: > not followed by word\n");
+				exit();
+			}
+			fdnum = open(t, O_WRONLY); // 以只写方式打开
+			if (fdnum < 0) {
+				writef("File error: > cannot open the file!\n");
+				exit();
+			}
+			dup(fdnum, 1);
+			close(fdnum);
+
+			// user_panic("> redirection not implemented");
 			break;
 		case '|':
 			// Your code here.
@@ -129,7 +151,33 @@ again:
 			//		set "rightpipe" to the child envid
 			//		goto runit, to execute this piece of the pipeline
 			//			and then wait for the right side to finish
-			user_panic("| not implemented");
+			r = pipe(p);
+			if (r < 0) {
+				writef("Failed to create a pipe!\n");
+				exit();
+			}
+			
+			r = fork(); // 创建子进程
+			if (r < 0) {
+				writef("Fatal error: Failed to fork.\n");
+				exit();
+			}
+
+			if (r > 0) { // 父进程
+				dup(p[1], 1);
+				close(p[0]);
+				close(p[1]);
+				rightpipe = r; // 管道右端是子进程
+				goto runit;
+			}
+			else {
+				dup(p[0], 0);
+				close(p[0]);
+				close[p[1]];
+				goto again;
+			}
+
+			// user_panic("| not implemented");
 			break;
 		}
 	}

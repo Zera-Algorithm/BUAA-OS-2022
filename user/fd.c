@@ -141,6 +141,7 @@ close_all(void)
 }
 
 // 将oldfdnum对应的fd描述符和数据区域全部拷贝到newfdnum所对应的区域。
+// 如果newfdnum存在会先关闭。
 // err1: oldfdnum不存在
 // err2: 内存映射失败。
 int

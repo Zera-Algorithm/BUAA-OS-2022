@@ -2,7 +2,8 @@
 
 int main() {
 	int t;
-	t = (3+4 == 6);
-	printf("hello World! t=%d.\n", t);
+	if (scanf("%d", &t) != EOF) {
+		printf("%d", t+1);
+	}
 	return 0;
 }

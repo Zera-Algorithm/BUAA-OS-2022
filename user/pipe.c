@@ -27,6 +27,7 @@ struct Pipe {
 };
 
 // 创建pipe管道，并将文件描述符写入到pfd中
+// 0号fd是读端，1号fd是写端
 int
 pipe(int pfd[2])
 {
