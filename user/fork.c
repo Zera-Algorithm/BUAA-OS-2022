@@ -101,9 +101,10 @@ pgfault(u_int va)
 
 	// writef("Pgfault: curenv->envid = %d.\n", env_id);
 	
-	if (pageref(va) == 1) {
-		(*vpt)[pn] ^= PTE_COW;
-	}
+	// if (pageref(va) == 1) {
+	// 	(*vpt)[pn] ^= PTE_COW;
+	// 	return;
+	// }
 
 	// writef("2. Stack saved ra = %x.\n", *(int *)(0x7f3fdfbc));
 	// don't use env->env_id, it's not correct! Pgfault may happens in syscall_getenvid.
