@@ -62,7 +62,7 @@ open_alloc(struct Open **o)
 										   PTE_V | PTE_R | PTE_LIBRARY)) < 0) { // 本来还有个PTE_LIBRARY
 					return r;
 				}
-			// case 1: // 这一行本来有
+			case 1: // 这一行本来有
 				opentab[i].o_fileid += MAXOPEN;
 				*o = &opentab[i];
 				user_bzero((void *)opentab[i].o_ff, BY2PG);

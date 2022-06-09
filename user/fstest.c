@@ -23,6 +23,9 @@ void umain()
 	    writef("[child] buffer is \'%s\'\n", buf);
 
         writef("[child] pageref = %d.\n", pageref(num2fd(fdnum)));
+
+        n = read(fdnum, buf, 4);
+        writef("[child] buffer is \'%s\'\n", buf);
     } else {
 	    n = read(fdnum, buf, 10);
 	    writef("[father] buffer is \'%s\'\n", buf);
@@ -37,6 +40,9 @@ void umain()
 	    writef("[father] buffer is \'%s\'\n", buf);
 
         writef("[father] pageref = %d.\n", pageref(num2fd(fdnum)));
+        
+        strcpy(buf, "1234");
+        write(fdnum, buf, 4);
     }
     while(1);
 }
