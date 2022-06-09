@@ -3,32 +3,26 @@
 
 void umain()
 {
-    int r, fdnum, n;
+    int r, fdnum, n, i;
     char buf[200];
-    if ((r = open("/motd", O_RDWR | O_APPEND) < 0)) {
-	    user_panic("open /motd: %d\n", r);
+    fdnum = open("/newmotd", O_RDWR | O_ALONE);
+    if ((r = fork()) == 0) {
+        write(fdnum, "Good", 4);
+        seek(fdnum, 0);
+        n = read(fdnum, buf, 5); // 读出Good 
+	    writef("[child] buffer is \'%s\'\n", buf);
+    } else {
+        for (i = 0; i < 20; i++)
+            syscall_yield();
+	    n = read(fdnum, buf, 5); // 读出This
+	    writef("[father] buffer is \'%s\'\n", buf);
     }
-    fdnum = r;
-    if (r = fwritef(fdnum, "test append") < 0) {
-	    user_panic("fwritef %d\n", r);
-    }
-    close(fdnum);
-    if ((r = open("/motd", O_RDWR) < 0)) {
-	    user_panic("open /motd: %d\n", r);
-    }
-    fdnum = r;
-    if ((n = read(fdnum, buf, 150)) < 0) {
-	    writef("read %d\n", n);
-	    return;
-    }
-    close(fdnum);
-    writef("\n%s\n", buf);
-    while (1);
+    while(1);
 }
 
 /* expected output:
 ==================================================================
-This is a different massage of the day!
-test append
+[father] buffer is 'This '
+[child] buffer is 'This '
 ==================================================================
 */
