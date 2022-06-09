@@ -15,7 +15,8 @@ void mips_init() {
 	env_init();
 
 	// ENV_CREATE(user_devtst);
-	ENV_CREATE(user_fstest);
+	// ENV_CREATE(user_fstest);
+	ENV_CREATE(user_forkfiletest);
 	ENV_CREATE(fs_serv);
  
 	trap_init();
