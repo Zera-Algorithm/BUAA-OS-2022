@@ -59,7 +59,7 @@ open_alloc(struct Open **o)
 		switch (pageref(opentab[i].o_ff)) {
 			case 0:
 				if ((r = syscall_mem_alloc(0, (u_int)opentab[i].o_ff,
-										   PTE_V | PTE_R)) < 0) { // 本来还有个PTE_LIBRARY
+										   PTE_V | PTE_R | PTE_LIBRARY)) < 0) { // 本来还有个PTE_LIBRARY
 					return r;
 				}
 			case 1:
