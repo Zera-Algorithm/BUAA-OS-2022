@@ -143,13 +143,13 @@ serve_open(u_int envid, struct Fsreq_open *rq)
 	ff->f_fd.fd_omode = o->o_mode;
 	ff->f_fd.fd_dev_id = devfile.dev_id;
 
-	// if (o->o_mode & O_ALONE) {
-	// 	// 此时父子之间不共享同一个页面
-	// 	ipc_send(envid, 0, (u_int)o->o_ff, PTE_V | PTE_R);
-	// }
-	// else {
+	if (o->o_mode & O_ALONE) {
+		// 此时父子之间不共享同一个页面
+		ipc_send(envid, 0, (u_int)o->o_ff, PTE_V | PTE_R);
+	}
+	else {
 		ipc_send(envid, 0, (u_int)o->o_ff, PTE_V | PTE_R | PTE_LIBRARY);
-	// }
+	}
 }
 
 void
@@ -176,12 +176,12 @@ serve_map(u_int envid, struct Fsreq_map *rq)
 		return;
 	}
 
-	if (pOpen->o_mode & O_ALONE) {
-		ipc_send(envid, 0, (u_int)blk, PTE_V | PTE_R);
-	}
-	else {
+	// if (pOpen->o_mode & O_ALONE) {
+	// 	ipc_send(envid, 0, (u_int)blk, PTE_V | PTE_R);
+	// }
+	// else {
 		ipc_send(envid, 0, (u_int)blk, PTE_V | PTE_R | PTE_LIBRARY);
-	}
+	// }
 }
 
 void
