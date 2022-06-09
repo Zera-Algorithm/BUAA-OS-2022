@@ -113,7 +113,7 @@ unmap_block(u_int blockno)
 	}
 
 	// Step 3: use 'syscall_mem_unmap' to unmap corresponding virtual memory.
-	syscall_mem_unmap(syscall_getenvid(), diskaddr(blockno));
+	syscall_mem_unmap(0, diskaddr(blockno));
 
 	// Step 4: validate result of this unmap operation.
 	user_assert(!block_is_mapped(blockno));
