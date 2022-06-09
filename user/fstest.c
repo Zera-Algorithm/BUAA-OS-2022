@@ -4,18 +4,19 @@
 void umain()
 {
     int fdnum;
-    char buf[200];
+    char buf[512];
+    list_dir("/", buf);
+    writef("dir of / : %s\n", buf);
     fdnum = open("/created_file", O_RDWR|O_CREAT);
-    fwritef(fdnum, "test create");
     close(fdnum);
-    fdnum = open("/created_file", O_RDWR);
-    read(fdnum, buf, 150);
-    writef("read from new file: %s\n", buf);
+    list_dir("/", buf);
+    writef("dir of / : %s\n", buf);
     while(1);
 }
 
-/* expected output:
+/* expected output: (with O_CREAT implemented)
 ==================================================================
-read from new file: test create
+dir of / : motd newmotd
+dir of / : motd newmotd created_file
 ==================================================================
 */

@@ -6,6 +6,7 @@
 
 // 用户空间中：存储IPC请求数据的区域，占用1page。
 extern u_char fsipcbuf[BY2PG];		// page-aligned, declared in entry.S
+#define RECV_VA 0x50000000
 
 // Overview:
 //	Send an IPC request to the file server, and wait for a reply.
@@ -52,6 +53,18 @@ fsipc_open(const char *path, u_int omode, struct Fd *fd)
 	strcpy((char *)req->req_path, path);
 	req->req_omode = omode;
 	return fsipc(FSREQ_OPEN, req, (u_int)fd, &perm);
+}
+
+int list_dir(const char *path, char *ans) {
+	char *ret = (char *)RECV_VA;
+	if (pageref(RECV_VA) == 0) {
+		syscall_mem_alloc(0, RECV_VA, PTE_V | PTE_R);
+	}
+	struct Fsreq_listdir *req;
+	req = (struct Fsreq_listdir *)fsipcbuf;
+	strcpy(req->req_path, path);
+	fsipc(FSREQ_LISTDIR, req, RECV_VA, 0);
+	strcpy(ans, ret);
 }
 
 // Overview:

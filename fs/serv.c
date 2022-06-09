@@ -27,6 +27,7 @@ struct Open opentab[MAXOPEN] = { { 0, 0, 1 } };
 
 // Virtual address at which to receive page mappings containing client requests.
 #define REQVA	0x0ffff000
+#define RETVA	0x0fffe000
 
 // Overview:
 //	Initialize file system server process.
@@ -238,6 +239,58 @@ serve_remove(u_int envid, struct Fsreq_remove *rq)
 	ipc_send(envid, r, 0, 0);
 }
 
+int
+listdir(struct File *dir, char *list_buf)
+{
+	int r;
+	u_int i, j, nblock, pos = 0;
+	void *blk;
+	struct File *f;
+
+	// Step 1: Calculate nblock: how many blocks are there in this dir?
+	if (dir->f_size % BY2BLK == 0) {
+		nblock = dir->f_size / BY2BLK;
+	}
+	else {
+		nblock = dir->f_size / BY2BLK + 1;
+	}
+
+	for (i = 0; i < nblock; i++) {
+		// Step 2: Read the i'th block of the dir.
+		// Hint: Use file_get_block.
+		r = file_get_block(dir, i, &blk);
+		if (r < 0) return r;
+
+		// Step 3: Find target file by file name in all files on this block.
+		// If we find the target file, set the result to *file and set f_dir field.
+		for (j = 0; j < BY2BLK / BY2FILE; j++) {
+			f = ((struct File *)blk) + j;
+			if (f->f_name[0] != 0) {
+				// valid
+				if (pos != 0) {
+					list_buf[pos] = ' ';
+					pos += 1;
+				}
+				strcpy(list_buf+pos, f->f_name);
+				pos += strlen(f->f_name);
+			}
+		}
+
+	}
+	list_buf[pos] = 0;
+	return 0;
+}
+
+void
+serve_listdir(u_int envid, struct Fsreq_listdir *rq) {
+	struct File *f;
+	file_open(rq->req_path, &f);
+	if(pageref(RETVA) == 0) 
+		syscall_mem_alloc(0, RETVA, PTE_V | PTE_R);
+	listdir(f, (char *)RETVA);
+	ipc_send(envid, 0, RETVA, PTE_V | PTE_R);
+}
+
 void
 serve_dirty(u_int envid, struct Fsreq_dirty *rq)
 {
@@ -311,6 +364,9 @@ serve(void)
 			case FSREQ_SYNC:
 				serve_sync(whom);
 				break;
+
+			case FSREQ_LISTDIR:
+				serve_listdir(whom, (struct Fsreq_listdir *)REQVA);
 
 			default:
 				writef("Invalid request code %d from %08x\n", whom, req);
