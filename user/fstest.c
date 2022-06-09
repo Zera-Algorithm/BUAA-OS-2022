@@ -3,19 +3,22 @@
 
 void umain()
 {
-    int fdnum;
+    int r, fdnum, n;
     char buf[200];
-    fdnum = open("/created_file", O_RDWR|O_CREAT);
-    fwritef(fdnum, "test create");
-    close(fdnum);
-    fdnum = open("/created_file", O_RDWR);
-    read(fdnum, buf, 150);
-    writef("read from new file: %s\n", buf);
+    fdnum = open("/newmotd", O_RDWR | O_ALONE);
+    if ((r = fork()) == 0) {
+	    n = read(fdnum, buf, 5);
+	    writef("[child] buffer is \'%s\'\n", buf);
+    } else {
+	    n = read(fdnum, buf, 5);
+	    writef("[father] buffer is \'%s\'\n", buf);
+    }
     while(1);
 }
 
 /* expected output:
 ==================================================================
-read from new file: test create
+[father] buffer is 'This '
+[child] buffer is 'This '
 ==================================================================
 */
