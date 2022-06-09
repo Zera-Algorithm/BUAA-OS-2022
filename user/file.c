@@ -60,6 +60,12 @@ open(const char *path, int mode)
 		// each time map a single page for va.
 	}
 
+	
+	if (mode & O_APPEND) {
+		// 如果当前的打开模式是追加模式
+		fd->fd_offset = size;
+	}
+
 	// Step 5: Return the number of file descriptor.
 	return fd2num(fd);
 }
