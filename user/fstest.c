@@ -3,19 +3,32 @@
 
 void umain()
 {
-    int fdnum;
+    int r, fdnum, n;
     char buf[200];
-    fdnum = open("/created_file", O_RDWR|O_CREAT);
-    fwritef(fdnum, "test create");
+    if ((r = open("/motd", O_RDWR | O_APPEND) < 0)) {
+	    user_panic("open /motd: %d\n", r);
+    }
+    fdnum = r;
+    if (r = fwritef(fdnum, "test append") < 0) {
+	    user_panic("fwritef %d\n", r);
+    }
     close(fdnum);
-    fdnum = open("/created_file", O_RDWR);
-    read(fdnum, buf, 150);
-    writef("read from new file: %s\n", buf);
-    while(1);
+    if ((r = open("/motd", O_RDWR) < 0)) {
+	    user_panic("open /motd: %d\n", r);
+    }
+    fdnum = r;
+    if ((n = read(fdnum, buf, 150)) < 0) {
+	    writef("read %d\n", n);
+	    return;
+    }
+    close(fdnum);
+    writef("\n%s\n", buf);
+    while (1);
 }
 
 /* expected output:
 ==================================================================
-read from new file: test create
+This is a different massage of the day!
+test append
 ==================================================================
 */
