@@ -81,13 +81,13 @@ void user_bzero(void *v, u_int n)
 /*** exercise 4.13 ***/
 
 // Current Stack is UXSTACK!
-static void
+void
 pgfault(u_int va)
 {
 	u_int tmp = (u_int)USTACKTOP; // a page of invalid mem.
 	int r;
 	int env_id = syscall_getenvid();
-	u_int pn = (va >> 12) & 0xfffff;
+	u_int pn = (va >> 12) & 0xfffff, ppn;
 	u_int perm = (((u_int)((*vpt)[pn])) & 0xfff);
 	
 	// writef("Pgfault: Happens at VA = %x.\n", va);
@@ -95,6 +95,16 @@ pgfault(u_int va)
 	// writef("1. Stack saved ra = %x.\n", *(int *)(0x7f3fdfbc));
 
 	if ((perm & PTE_COW) == 0) {
+		if ((perm & PTE_FS) != 0) {
+			writef("set dirty\n");
+
+			// 此块物理内存对应块缓存
+			ppn = ((*vpt)[pn]) >> 12;
+			pages[ppn].blockCacheChanged = 1;
+			// 重新映射自己的块，解除TLB原来的映射
+			syscall_mem_map(0, va, 0, va, PTE_FS | PTE_R | PTE_V);
+			return;
+		}
 		user_panic("Error: PAGE FAULT Happens when PTE_COW is not set!!");
 	}
 	// alloc a page to tmp address.
@@ -200,7 +210,8 @@ fork(void)
 	extern struct Env *env;
 	u_int i, addr;
 
-	set_pgfault_handler(pgfault); // must set before syscall_env_alloc, since YOU should pass the __pgfault_handler to the child.
+	// 提前到程序刚刚加载时
+	// set_pgfault_handler(pgfault); // must set before syscall_env_alloc, since YOU should pass the __pgfault_handler to the child.
 	//The parent installs pgfault using set_pgfault_handler
 
 	// writef("It's user space's fork!\n");

@@ -59,7 +59,10 @@ block_is_mapped(u_int blockno)
 u_int
 va_is_dirty(u_int va)
 {
-	return (* vpt)[VPN(va)] & PTE_D;
+	u_long pa;
+	pa = PTE_ADDR((*vpt)[va>>12]);
+	return pages[pa>>12].blockCacheChanged;
+	// return (* vpt)[VPN(va)] & PTE_D;
 }
 
 // Overview:
@@ -83,11 +86,14 @@ int
 map_block(u_int blockno)
 {
 	int r;
+	u_long pa;
 	// Step 1: Decide whether this block has already mapped to a page of physical memory.
 	if(block_is_mapped(blockno)) return 0;
 
 	// Step 2: Alloc a page of memory for this block via syscall.
-	r = syscall_mem_alloc(syscall_getenvid(), diskaddr(blockno), PTE_V | PTE_R);
+	r = syscall_mem_alloc(syscall_getenvid(), diskaddr(blockno), PTE_V | PTE_R | PTE_FS);
+	pa = PTE_ADDR((*vpt)[diskaddr(blockno)>>12]);
+	pages[pa>>12].blockCacheChanged = 0;
 	return r;
 }
 
@@ -98,6 +104,7 @@ void
 unmap_block(u_int blockno)
 {
 	int r;
+	u_long pa;
 
 	// Step 1: check if this block is mapped.
 	if (block_is_mapped(blockno) == 0) {
@@ -111,6 +118,9 @@ unmap_block(u_int blockno)
 	if (!block_is_free(blockno) && block_is_dirty(blockno)) {
 		write_block(blockno);
 	}
+
+	pa = PTE_ADDR((*vpt)[diskaddr(blockno)>>12]);
+	pages[pa>>12].blockCacheChanged = 0;
 
 	// Step 3: use 'syscall_mem_unmap' to unmap corresponding virtual memory.
 	syscall_mem_unmap(0, diskaddr(blockno));
@@ -186,6 +196,7 @@ void
 write_block(u_int blockno)
 {
 	u_int va;
+	u_long pa;
 
 	// Step 1: detect is this block is mapped, if not, can't write it's data to disk.
 	if (!block_is_mapped(blockno)) {
@@ -196,7 +207,12 @@ write_block(u_int blockno)
 	va = diskaddr(blockno);
 	ide_write(0, blockno * SECT2BLK, (void *)va, SECT2BLK);
 
-	syscall_mem_map(0, va, 0, va, (PTE_V | PTE_R | PTE_LIBRARY));
+	// 清空blockCacheChanged字段，防止再次出现页写入异常
+	pa = PTE_ADDR((*vpt)[diskaddr(blockno)>>12]);
+	pages[pa>>12].blockCacheChanged = 0;
+
+	// 重设权限位
+	syscall_mem_map(0, va, 0, va, (PTE_V | PTE_R | PTE_LIBRARY | PTE_FS));
 }
 
 // Overview:

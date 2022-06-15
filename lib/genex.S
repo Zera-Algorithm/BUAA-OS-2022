@@ -118,11 +118,36 @@ NESTED(do_refill,0 , sp)
 					and		t0,0x0200
 					beqz		t0,NOPAGE
 			nop
+
+// ----------从此开始
 			move		k0,k1
-			and		k0,0x1
-			beqz		k0,NoCOW
+			and		k0,0x1  // 处理COW位
+			bnez		k0,DELREAD
 			nop
+			
+			move	k0, k1
+			and		k0, 0x4 // 处理PTE_FS位
+			beqz	k0, NoCOW
+			nop
+
+			sw	 	ra,tlbra
+
+			move	a0, k1 // 传入pa
+			jal		checkFSCache // 返回v0 = blockCacheChanged
+			nop
+
+			lw		ra,tlbra
+
+			beqz	v0, DELREAD
+			nop
+
+			j		NoCOW
+			nop
+
+DELREAD: // 意思是删除读取权限
 			and		k1,0xfffffbff
+
+// ------到此结束
 NoCOW:
 			mtc0		k1,CP0_ENTRYLO0
 			nop

@@ -38,6 +38,7 @@
 #define PTE_D		0x0002	// fileSystem Cached is dirty
 #define PTE_COW		0x0001	// Copy On Write
 #define PTE_UC		0x0800	// unCached
+#define PTE_FS		0x0004
 #define PTE_LIBRARY		0x0004	// share memmory
 /*
  * Part 2.  Our conventions.

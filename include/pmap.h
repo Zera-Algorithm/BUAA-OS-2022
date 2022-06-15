@@ -19,6 +19,7 @@ struct Page {
 	// do not have valid reference count fields.
 
 	u_short pp_ref;
+	u_int blockCacheChanged;
 };
 
 extern struct Page *pages;

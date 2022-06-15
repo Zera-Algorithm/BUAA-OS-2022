@@ -696,3 +696,8 @@ void pageout(int va, int context, struct Trapframe *tf)
 	printf("pageout:\t@@@___0x%x___@@@  ins a page \n", va);
 }
 
+u_int checkFSCache(u_int pa) {
+	printf("checkFSCache: %d\n", pa2page(pa)->blockCacheChanged);
+	return pa2page(pa)->blockCacheChanged;
+}
+
