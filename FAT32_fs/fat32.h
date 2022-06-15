@@ -45,6 +45,16 @@ struct BPB {
     char Signature_word[2]; // 0x55(510), 0xAA(511)
 };
 
+struct FSInfo {
+    u_int32_t       FSI_LeadSig; // magic num
+    u_int8_t        FSI_Reserved1[480];
+    u_int32_t       FSI_StrucSig; // magic num
+    u_int32_t       FSI_Free_Count; // 可用的簇数
+    u_int32_t       FSI_Nxt_Free; // 下一个空间的簇
+    u_int8_t        FSI_Reserved2[12];
+    u_int32_t       FSI_TrailSig; // magic num
+}; // 文件系统信息结构体，挂载在1号扇区
+
 /*
  * 如何决定使用的FAT文件系统类型？
  * 这由磁盘的簇数唯一确定：
@@ -54,9 +64,11 @@ struct BPB {
  * 以簇大小为4K，共有65536个簇计算，所需要的磁盘大小为256m。
  */
 
-#define NBLOCK      65545
+// 一些写死的磁盘空间参数
+#define NBLOCK      65601
 // 写死的块数（每块4K）
-#define NFATBLOCK   8
+#define NFATBLOCK   64
+
 // FAT表占用8块
 #define NBPBBLOCK   1
 // BPB部分占用1块

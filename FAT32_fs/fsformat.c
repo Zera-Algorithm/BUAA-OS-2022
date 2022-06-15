@@ -30,6 +30,7 @@ struct Block {
 struct Block blocks[NBLOCK];
 int next_cluster = ROOTCLUS;
 DIREnt *rootDirEnt;
+struct FSInfo *fsinfo;
 char buf[1025];
 
 // 获取一个新的簇号（同时将最新的簇号加一，使得next_cluster是当前最小的没被使用过的簇）
@@ -61,6 +62,12 @@ void init_BPB(struct BPB *bpb) {
     strcpy(bpb->BS_FilSysType, "FAT32 "); // 文件系统名
     bpb->Signature_word[0]  = 0x55;
     bpb->Signature_word[1]  = 0xAA;
+}
+
+void init_FSInfo(struct FSInfo *info) {
+    info->FSI_LeadSig   = 0x41615252;
+    info->FSI_StrucSig  = 0x61417272;
+    info->FSI_TrailSig  = 0xAA550000;
 }
 
 uint *getpFATEnt(int N_clus) {
@@ -97,8 +104,10 @@ void init_disk() {
 
     assert(sizeof(struct BPB) == 512);
     assert(sizeof(struct DIREnt) == 32 && sizeof(struct LongNameEnt) == 32);
-    
+
     init_BPB((struct BPB *)blocks[0].data);
+    fsinfo = (struct FSInfo *)(blocks[0].data + 512);
+    init_FSInfo(fsinfo);
 
     int FATBLK_START = NBPBBLOCK;
     for(i = 0; i < NFATBLOCK; i++) {
@@ -345,6 +354,13 @@ void reverse_block(struct Block *block) {
         reverse_16(&bpb->BPB_FSInfo);
         reverse_16(&bpb->BPB_BkBootSec);
         reverse_32(&bpb->BS_VolID);
+
+        // 翻转FSInfo
+        reverse_32(&fsinfo->FSI_LeadSig);
+        reverse_32(&fsinfo->FSI_StrucSig);
+        reverse_32(&fsinfo->FSI_Free_Count);
+        reverse_32(&fsinfo->FSI_Nxt_Free);
+        reverse_32(&fsinfo->FSI_TrailSig);
         break;
 
     case BLOCK_DIR:
@@ -384,6 +400,10 @@ void reverse_block(struct Block *block) {
 
 void finish_fs(char *path) {
     int fd;
+
+    // 更新FSInfo
+    fsinfo->FSI_Nxt_Free = next_cluster;
+    fsinfo->FSI_Free_Count = NDATABLOCK - (next_cluster - 2);
 
     fd = open(path, O_RDWR | O_CREAT, 0666);
     for (int i = 0; i < NBLOCK; i++) {
