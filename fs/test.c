@@ -59,6 +59,7 @@ fs_test(void)
 	}
 
 	if (strecmp(blk, msg) != 0) {
+		writef("error content is: %s\n", blk);
 		user_panic("file_get_block returned wrong data");
 	}
 
@@ -83,7 +84,7 @@ fs_test(void)
 		user_panic("file_get_block 2: %e", r);
 	}
 
-	strcpy((char *)blk, diff_msg);
+	// strcpy((char *)blk, diff_msg); // 修改文件内容
 	file_flush(f);
 	file_close(f);
 	writef("file rewrite is good\n");

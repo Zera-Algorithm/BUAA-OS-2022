@@ -17,7 +17,7 @@ LEAF(env_pop_tf)
 		//1:	j	1b
 	nop
 		move		k0,a0
-		mtc0	a1,CP0_ENTRYHI
+		mtc0	a1,CP0_ENTRYHI // CP0_ENTRYHI记录当前活动的ASID
 
 
 		mfc0	t0,CP0_STATUS

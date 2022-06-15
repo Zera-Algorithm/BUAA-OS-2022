@@ -24,11 +24,13 @@ FSLIB :=	fs.o \
 		ide.o \
 		test.o
 
-FSIMGFILES := motd newmotd
+FSIMGFILES := motd newmotd testfile
+# add my testfile, to pretend the error.
 
 CFLAGS += -nostdlib -static
 
-all: serv.x fs.img serv.b
+all: serv.x serv.b
+# all: serv.x fs.img serv.b
 
 %.x: %.b.c
 	echo cc1 $<
