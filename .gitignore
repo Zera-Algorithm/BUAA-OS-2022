@@ -8,3 +8,4 @@
 /gxemul/vmlinux
 /gxemul/fs*.img
 /fs/fsformat
+/FAT_fs/fs.img

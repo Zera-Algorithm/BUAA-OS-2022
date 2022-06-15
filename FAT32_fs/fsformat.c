@@ -3,7 +3,6 @@
 #include <assert.h>
 #include <string.h>
 #include <fcntl.h>
-#include <types.h>
 #include <dirent.h>
 #include "fat32.h"
 
@@ -33,6 +32,17 @@ int next_cluster = ROOTCLUS;
 DIREnt *rootDirEnt;
 char buf[1025];
 
+// 获取一个新的簇号（同时将最新的簇号加一，使得next_cluster是当前最小的没被使用过的簇）
+int new_clus(enum CLUS_TYPE clus_type) {
+    blocks[CLUS2BLK(next_cluster)].type = clus_type;
+    return next_cluster++;
+}
+
+// 获取一个新的块号
+int new_blk(enum CLUS_TYPE clus_type) {
+    return CLUS2BLK(new_clus(clus_type));
+}
+
 void init_BPB(struct BPB *bpb) {
     strcpy(bpb->BS_OEMName, "MOS ");
     bpb->BPB_BytesPerSec    = 512;
@@ -57,7 +67,7 @@ uint *getpFATEnt(int N_clus) {
     assert(N_clus >= 2);
     int offset = (N_clus - 2) * 4;
     int n_block = offset / BY2BLK;
-    return (u_int32_t)(blocks[NBPBBLOCK + n_block].data + offset % BY2BLK);
+    return (uint *)(blocks[NBPBBLOCK + n_block].data + offset % BY2BLK);
 }
 
 void init_root() {
@@ -78,7 +88,16 @@ void init_root() {
 void init_disk() {
     int i;
     blocks[0].type = BLOCK_BPB;
+
+    // 结构体占用空间打印
+    // printf("BPB_size = %d\n", sizeof(struct BPB));
+    // printf("DIREnt_size = %d, LongNameEnt_size = %d\n", 
+    //         sizeof(struct DIREnt), sizeof(struct LongNameEnt));
+    // printf("pointer_size = %d\n", sizeof(int *));
+
     assert(sizeof(struct BPB) == 512);
+    assert(sizeof(struct DIREnt) == 32 && sizeof(struct LongNameEnt) == 32);
+    
     init_BPB((struct BPB *)blocks[0].data);
 
     int FATBLK_START = NBPBBLOCK;
@@ -94,17 +113,6 @@ void init_disk() {
 // 所以最大长文件名项数为0x40-1 = 63，最长文件名为63 * 26 + 11 = 1649
 // 不过为了方便管理，我们规定最长的文件名为1024
 
-
-// 获取一个新的簇号（同时将最新的簇号加一，使得next_cluster是当前最小的没被使用过的簇）
-int new_clus(enum CLUS_TYPE clus_type) {
-    blocks[CLUS2BLK(next_cluster)].type = clus_type;
-    return next_cluster++;
-}
-
-// 获取一个新的块号
-int new_blk(enum CLUS_TYPE clus_type) {
-    return CLUS2BLK(new_clus(clus_type));
-}
 
 // 获取一个空的目录项位置
 // 若当前目录空间已满，则为当前目录新分配一个簇
@@ -190,7 +198,7 @@ void write_file(DIREnt *lastDir, const char *path) {
     // Get file name with no path prefix.
     // 找到path中最右面的/所在的字符指针位置，若无，返回null。
     // Sample: "/root/zrp/pic.jpg" -> "pic.jpg"
-    const char *fname = strrchr(path, '/');
+    char *fname = strrchr(path, '/');
     if(fname)
         fname++;
     else
@@ -236,7 +244,7 @@ void write_directory(DIREnt *lastDir, const char *path) {
     // Get file name with no path prefix.
     // 找到path中最右面的/所在的字符指针位置，若无，返回null。
     // Sample: "/root/zrp/pic.jpg" -> "pic.jpg"
-    const char *fname = strrchr(path, '/');
+    char *fname = strrchr(path, '/');
     if(fname)
         fname++;
     else
@@ -287,7 +295,7 @@ void write_directory(DIREnt *lastDir, const char *path) {
 }
 
 void reverse_16(u_int16_t *p) {
-    u_int8_t *x = (u_int8_t)p;
+    u_int8_t *x = (u_int8_t *)p;
     u_int16_t y = *p;
 
     x[1] = y & 0xFF;

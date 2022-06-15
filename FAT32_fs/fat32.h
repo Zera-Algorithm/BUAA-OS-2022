@@ -1,14 +1,14 @@
-#include <mmu.h>
-
 // 定义类型
 typedef unsigned char            u_int8_t;
 typedef short                     int16_t;
 typedef unsigned short          u_int16_t;
 typedef int                       int32_t;
 typedef unsigned int            u_int32_t;
-typedef long long                 int64_t;
-typedef unsigned long long      u_int64_t;
 typedef unsigned                     uint;
+
+#pragma pack(1)
+// 取消C编译器对结构体的自动对齐，保持结构体的偏移和占用空间
+// 符合要求
 
 struct BPB {
     // FAT12/16/32共享区域
