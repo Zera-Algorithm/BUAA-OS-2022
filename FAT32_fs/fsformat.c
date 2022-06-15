@@ -135,6 +135,7 @@ DIREnt *findEmptyEnt(uint DIRclus) {
         for (i = 0; i < BY2BLK / BY2DIRENT; i++) {
             if (pEnt[i].DIR_Name[0] == 0x00) {
                 // 表示此表项以及之后各表项均为空
+                printf("[1] find an Entry in CLUSTER #%d.\n", clus);
                 return (pEnt + i);
             }
         }
@@ -146,6 +147,7 @@ DIREnt *findEmptyEnt(uint DIRclus) {
             *pFAT = clus;
             *getpFATEnt(clus) = CLUS_FILEEND;
 
+            printf("[2] find an Entry in CLUSTER #%d.\n", clus);
             return (DIREnt *)blocks[CLUS2BLK(clus)].data;
         }
     }
@@ -174,11 +176,17 @@ DIREnt *create_file(int DIRclus, char *name) {
     if (len > MAXNAMELEN) {
         printf("Filename %s:\nToo long!!\n", name);
     }
-    if(((len + 1) - 11) % CHAR2LONGENT == 0)
-        n_longEnt = ((len + 1) - 11) / CHAR2LONGENT;
-    else
-        n_longEnt = ((len + 1) - 11) / CHAR2LONGENT + 1;
+    if ((len + 1) - 11 < 0) {
+        n_longEnt = 0;
+    }
+    else {
+        if(((len + 1) - 11) % CHAR2LONGENT == 0)
+            n_longEnt = ((len + 1) - 11) / CHAR2LONGENT;
+        else
+            n_longEnt = ((len + 1) - 11) / CHAR2LONGENT + 1;
+    }
 
+    printf("file %s, n_longEnt = %d.\n", name, n_longEnt);
     // 复制文件名到longEnt
     for (i = n_longEnt; i >= 1; i--) {
         LongNameEnt *longEnt = (LongNameEnt *)findEmptyEnt(DIRclus);
@@ -202,7 +210,7 @@ DIREnt *create_file(int DIRclus, char *name) {
 
 // path是本机器上要写入文件的路径
 void write_file(DIREnt *lastDir, const char *path) {
-    int DIRclus = lastDir->DIR_FstClusHI << 16 + lastDir->DIR_DstClusLO;
+    int DIRclus = (lastDir->DIR_FstClusHI << 16) + lastDir->DIR_DstClusLO;
     int r, n_clus;
 
     // Get file name with no path prefix.
@@ -248,7 +256,7 @@ void write_file(DIREnt *lastDir, const char *path) {
 
 
 void write_directory(DIREnt *lastDir, const char *path) {
-    int DIRclus = lastDir->DIR_FstClusHI << 16 + lastDir->DIR_DstClusLO;
+    int DIRclus = (lastDir->DIR_FstClusHI << 16) + lastDir->DIR_DstClusLO;
     int r, n_clus, firstClus;
 
     // Get file name with no path prefix.
@@ -427,6 +435,7 @@ int main(int argc, char **argv) {
     assert(argc >= 2);
     if(strcmp(argv[1], "-l") == 0) {
         argpos = 2;
+        isReverse = 0;
     } else {
         argpos = 1;
     }
