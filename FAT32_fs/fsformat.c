@@ -32,6 +32,7 @@ int next_cluster = ROOTCLUS;
 DIREnt *rootDirEnt;
 struct FSInfo *fsinfo;
 char buf[1025];
+int isReverse = 1;
 
 // 获取一个新的簇号（同时将最新的簇号加一，使得next_cluster是当前最小的没被使用过的簇）
 int new_clus(enum CLUS_TYPE clus_type) {
@@ -407,7 +408,7 @@ void finish_fs(char *path) {
 
     fd = open(path, O_RDWR | O_CREAT, 0666);
     for (int i = 0; i < NBLOCK; i++) {
-        reverse_block(blocks+i);
+        if(isReverse) reverse_block(blocks+i);
         write(fd, blocks[i].data, BY2BLK);
     }
 
@@ -415,28 +416,45 @@ void finish_fs(char *path) {
 }
 
 int main(int argc, char **argv) {
-    int i;
+    int i, argpos;
 
     init_disk();
 
-    if(argc < 3 || (strcmp(argv[2], "-r") == 0 && argc != 4)) {
-        fprintf(stderr, "\
-Usage: fsformat gxemul/fs.img files...\n\
-       fsformat gxemul/fs.img -r DIR\n");
-        exit(0);
+    if (argc < 2) goto showHelp; // 参数只有一项，报错
+    else if (argc >= 2 && strcmp(argv[1], "-h") == 0) 
+        goto showHelp; // 帮助选项
+
+    assert(argc >= 2);
+    if(strcmp(argv[1], "-l") == 0) {
+        argpos = 2;
+    } else {
+        argpos = 1;
     }
 
-    if(strcmp(argv[2], "-r") == 0) {
-        for (i = 3; i < argc; ++i) {
+    if (argpos+2 > argc)
+        goto showHelp; // 参数不足，没有fs.img项目和[-r/file]选项
+
+    if(strcmp(argv[argpos+1], "-r") == 0) {
+        if (argpos+3 > argc)
+            goto showHelp; // 参数不足，-r后面没有目录项
+        for (i = argpos+2; i < argc; ++i) {
             write_directory(rootDirEnt, argv[i]);
         }
     }
     else {
-        for(i = 2; i < argc; ++i) {
+        for(i = argpos+1; i < argc; ++i) {
             write_file(rootDirEnt, argv[i]);
         }
     }
 
-    finish_fs(argv[1]);
+    finish_fs(argv[argpos]);
     return 0;
+
+showHelp:
+    fprintf(stderr, "\
+Usage: fsformat [-l] gxemul/fs.img files...\n\
+       fsformat [-l] gxemul/fs.img -r DIR\n\
+       fsformat -h\n\
+       -l: little endian; or else big endian.\n");
+    exit(0);
 }
