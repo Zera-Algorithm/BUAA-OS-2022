@@ -15,12 +15,6 @@ enum BLOCK_TYPE {
     BLOCK_FILE  = 4,
 };
 
-enum CLUS_TYPE {
-    CLUS_FREE    = 0,
-    CLUS_BAD     = 0x0ffffff7,
-    CLUS_FILEEND = 0xffffffff,
-};
-
 struct Block {
     u_int8_t data[BY2BLK];
     u_int32_t type;

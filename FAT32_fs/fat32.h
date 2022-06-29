@@ -79,6 +79,8 @@ struct FSInfo {
 #define ROOTCLUS    2
 
 #define CLUS2BLK(x) (NBPBBLOCK + NFATBLOCK + (x) - 2)
+#define BLK2CLUS(x) (x - NBPBBLOCK - NFATBLOCK + 2)
+
 #define BY2DIRENT   32
 #define LAST_LONG_ENTRY     0x40
 
@@ -118,3 +120,9 @@ typedef struct LongNameEnt {
 
 #define MAXNAMELEN      1024
 #define CHAR2LONGENT    26
+
+enum CLUS_TYPE {
+    CLUS_FREE    = 0,
+    CLUS_BAD     = 0x0ffffff7,
+    CLUS_FILEEND = 0xffffffff,
+};

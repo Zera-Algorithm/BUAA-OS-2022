@@ -9,13 +9,17 @@
 #include "fs.h"
 #include <mmu.h>
 
-struct Super *super;
+struct BPB *bpb;
+int nblocks;
+struct DIREnt root;
 
-u_int nbitmap;		// number of bitmap blocks
-u_int *bitmap;		// bitmap blocks mapped in memory
+u_int *FATtable;
+u_int nFATtable;
 
 void file_flush(struct File *);
 int block_is_free(u_int);
+
+// ------------- 以下几个函数涉及块缓存的映射 -----------
 
 // Overview:
 //	Return the virtual address of this disk block. If the `blockno` is greater
@@ -26,12 +30,12 @@ diskaddr(u_int blockno)
 {
 	/* Step1: check if blockno >= total blocks. */
 	// Not necessary to check super.
-	if (super && blockno >= super->s_nblocks) {
+	if (bpb && blockno >= nblocks) {
 		user_panic("Blockno >= nblocks! The block can't be read.");
 	}
 	
 	/* Step2: Calc the corresponding address. */
-	return DISKMAP + BY2BLK * blockno;
+	return FAT_DISKMAP + BY2BLK * blockno;
 }
 
 // Overview:
@@ -129,6 +133,8 @@ unmap_block(u_int blockno)
 	user_assert(!block_is_mapped(blockno));
 }
 
+// ------------------块读写------------------
+
 // Overview:
 //	Make sure a particular disk block is loaded into memory.
 //
@@ -144,13 +150,13 @@ unmap_block(u_int blockno)
 //
 // Hint:
 //	use diskaddr, block_is_mapped, syscall_mem_alloc, and ide_read.
-int
+static int
 read_block(u_int blockno, void **blk, u_int *isnew)
 {
 	u_int va;
 
 	// Step 1: validate blockno. Make file the block to read is within the disk.
-	if (super && blockno >= super->s_nblocks) {
+	if (bpb && blockno >= nblocks) {
 		user_panic("reading non-existent block %08x\n", blockno);
 	}
 
@@ -159,7 +165,7 @@ read_block(u_int blockno, void **blk, u_int *isnew)
 	//	If the bitmap is NULL, indicate that we haven't read bitmap from disk to memory
 	// 	until now. So, before we check if a block is free using `block_is_free`, we must
 	// 	ensure that the bitmap blocks are already read from the disk to memory.
-	if (bitmap && block_is_free(blockno)) {
+	if (FATtable && block_is_free(blockno)) {
 		user_panic("reading free block %08x\n", blockno);
 	}
 
@@ -180,7 +186,9 @@ read_block(u_int blockno, void **blk, u_int *isnew)
 			*isnew = 1;
 		}
 		syscall_mem_alloc(0, va, PTE_V | PTE_R);
-		ide_read(0, blockno * SECT2BLK, (void *)va, SECT2BLK);
+
+		// 我们文件系统默认挂载在1号盘
+		ide_read(1, blockno * SECT2BLK, (void *)va, SECT2BLK);
 	}
 
 	// Step 5: if blk != NULL, set `va` to *blk.
@@ -192,7 +200,7 @@ read_block(u_int blockno, void **blk, u_int *isnew)
 
 // Overview:
 //	Wirte the current contents of the block out to disk.
-void
+static void
 write_block(u_int blockno)
 {
 	u_int va;
@@ -205,7 +213,7 @@ write_block(u_int blockno)
 
 	// Step2: write data to IDE disk. (using ide_write, and the diskno is 0)
 	va = diskaddr(blockno);
-	ide_write(0, blockno * SECT2BLK, (void *)va, SECT2BLK);
+	ide_write(1, blockno * SECT2BLK, (void *)va, SECT2BLK);
 
 	// 清空blockCacheChanged字段，防止再次出现页写入异常
 	pa = PTE_ADDR((*vpt)[diskaddr(blockno)>>12]);
@@ -215,6 +223,8 @@ write_block(u_int blockno)
 	syscall_mem_map(0, va, 0, va, (PTE_V | PTE_R | PTE_LIBRARY | PTE_FS));
 }
 
+// -------------以下几个函数都涉及到块的管理（与FAT表有关系）------------
+
 // Overview:
 //	Check to see if the block 'blockno' is free via bitmap.
 //
@@ -223,11 +233,11 @@ write_block(u_int blockno)
 int
 block_is_free(u_int blockno)
 {
-	if (super == 0 || blockno >= super->s_nblocks) {
+	if (bpb == 0 || blockno >= nblocks) {
 		return 0;
 	}
 
-	if (bitmap[blockno / 32] & (1 << (blockno % 32))) {
+	if (FATtable[BLK2CLUS(blockno)] == CLUS_FREE) {
 		return 1;
 	}
 
@@ -241,12 +251,12 @@ void
 free_block(u_int blockno)
 {
 	// Step 1: Check if the parameter `blockno` is valid (`blockno` can't be zero).
-	if (super == 0 || blockno >= super->s_nblocks || blockno == 0)
+	if (bpb == 0 || blockno >= nblocks || blockno == 0)
 		return;
 	
 	// Step 2: Update the flag bit in bitmap.
 	// you can use bit operation to update flags, such as  a |= (1 << n) .
-	bitmap[blockno / 32] |= (1 << (blockno % 32));
+	FATtable[BLK2CLUS(blockno)] = CLUS_FREE;
 }
 
 // Overview:
@@ -258,14 +268,13 @@ free_block(u_int blockno)
 int
 alloc_block_num(void)
 {
-	int blockno;
-	// walk through this bitmap, find a free one and mark it as used, then sync
-	// this block to IDE disk (using `write_block`) from memory.
-	for (blockno = 3; blockno < super->s_nblocks; blockno++) {
-		if (bitmap[blockno / 32] & (1 << (blockno % 32))) {	// the block is free
-			bitmap[blockno / 32] &= ~(1 << (blockno % 32));
-			write_block(blockno / BIT2BLK + 2); // write to disk.
-			return blockno;
+	int i;
+	// 遍历FAT表，找到第一个FREE的表项
+	for (i = 0; i < (NFATBLOCK * BY2BLK / 4); i++) {
+		// i表示表项数，CLUS=i+2
+		if (FATtable[i] == CLUS_FREE) {
+			// 现在无法填写表项，只能先分配出去
+			return CLUS2BLK(i+2);
 		}
 	}
 	// no free blocks.
@@ -294,101 +303,79 @@ alloc_block(void)
 	return bno;
 }
 
-// Overview:
-//	Read and validate the file system super-block.
-//
-// Post-condition:
-//	If error occurred during read super block or validate failed, panic.
-void
-read_super(void)
-{
-	int r;
-	void *blk;
-
-	// Step 1: read super block.
-	if ((r = read_block(1, &blk, 0)) < 0) {
-		user_panic("cannot read superblock: %e", r);
-	}
-
-	super = blk;
-
-	// Step 2: Check fs magic nunber.
-	if (super->s_magic != FS_MAGIC) {
-		user_panic("bad file system magic number %x %x", super->s_magic, FS_MAGIC);
-	}
-
-	// Step 3: validate disk size.
-	if (super->s_nblocks > DISKMAX / BY2BLK) {
-		user_panic("file system is too large");
-	}
-
-	writef("superblock is good\n");
-}
-
-// Overview:
-//	Read and validate the file system bitmap.
-//
-// Hint:
-// 	Read all the bitmap blocks into memory.
-// 	Set the "bitmap" pointer to point ablocknot the beginning of the first bitmap block.
-//	For each block i, user_assert(!block_is_free(i))).Check that they're all marked as inuse
-void
-read_bitmap(void)
-{
-	u_int i;
-	void *blk = NULL;
-
-	// Step 1: calculate this number of bitmap blocks, and read all bitmap blocks to memory.
-	nbitmap = super->s_nblocks / BIT2BLK + 1;
-	for (i = 0; i < nbitmap; i++) {
-		read_block(i + 2, blk, 0);
-	}
-
-	bitmap = (u_int *)diskaddr(2);
-
-
-	// Step 2: Make sure the reserved and root blocks are marked in-use.
-	// Hint: use `block_is_free`
-	user_assert(!block_is_free(0));
-	user_assert(!block_is_free(1));
-
-	// Step 3: Make sure all bitmap blocks are marked in-use.
-	for (i = 0; i < nbitmap; i++) {
-		user_assert(!block_is_free(i + 2));
-	}
-
-	writef("read_bitmap is good\n");
-}
+//--------------------------文件系统初始化------------------------
 
 // Overview:
 //	Test that write_block works, by smashing the superblock and reading it back.
-void
+// 检查写磁盘是否能正常工作
+static void
 check_write_block(void)
 {
-	super = 0;
 
-	// backup the super block.
-	// copy the data in super block to the first block on the disk.
-	read_block(0, 0, 0);
-	user_bcopy((char *)diskaddr(1), (char *)diskaddr(0), BY2PG);
+}
 
-	// smash it
-	strcpy((char *)diskaddr(1), "OOPS!\n");
-	write_block(1);
-	user_assert(block_is_mapped(1));
+void
+load_root(void)
+{
+	// 分配空间，建立公用的rootDirEnt
+    strcpy(root.DIR_Name, "/");
+    root.DIR_Attr = ATTR_DIRECTORY;
+    root.DIR_FileSize = 0;
+    root.DIR_DstClusLO = bpb->BPB_RootClus & 0xffff;
+    root.DIR_FstClusHI = (bpb->BPB_RootClus >> 16) & 0xffff;
+}
 
-	// clear it out
-	syscall_mem_unmap(0, diskaddr(1));
-	user_assert(!block_is_mapped(1));
+void load_FATfs() {
+	void *blk;
+	int r, i;
 
-	// validate the data read from the disk.
-	read_block(1, 0, 0);
-	user_assert(strcmp((char *)diskaddr(1), "OOPS!\n") == 0);
+	// 加载第0块
+	if ((r = read_block(0, blk, 0)) < 0) {
+		user_panic("Can't read FAT's BPB Block!");
+	}
 
-	// restore the super block.
-	user_bcopy((char *)diskaddr(0), (char *)diskaddr(1), BY2PG);
-	write_block(1);
-	super = (struct Super *)diskaddr(1);
+	bpb = blk;
+
+	// 检查bpb的内容是否合法
+	// 1. 文件系统格式为FAT32
+	if (strcmp(bpb->BS_FilSysType, "FAT32 ") != 0) {
+		user_panic("FAT Error: not a valid FAT32 FS!");
+	}
+
+	// 2. 魔数为0x55, 0xAA
+	if (bpb->Signature_word[0] != 0x55 || bpb->Signature_word[1] != 0xAA) {
+		user_panic("FAT Error: not a valid FS!");
+	}
+
+	// 3. 检查磁盘容量是否超过总容量
+	nblocks = bpb->BPB_TotSec32 / SECT2BLK;
+	if (nblocks > FAT_DISKMAX / BY2BLK) {
+		user_panic("FAT FS is too large to contain!");
+	}
+	int size = nblocks * BY2BLK / 1024 / 1024; //MB
+	writef("FAT size:\nTotal: %dMB, ", size);
+
+	// FAT表处理
+	// 1. 加载FAT表
+	for (i = 1; i <= 1 + NFATBLOCK; i++) {
+		r = read_block(i, blk, 0);
+		if (r < 0) {
+			user_panic("\nError when read FAT table!");
+		}
+	}
+
+	// 2. 计算已用容量
+	nFATtable = bpb->BPB_FATSz32;
+	int usedFATent = 0;
+	for (i = 0; i < nFATtable; i++) {
+		if (FATtable[i] != CLUS_FREE) {
+			usedFATent += 1;
+		}
+	}
+	size = (usedFATent + NFATBLOCK + 1) * BY2BLK / 1024;
+	writef("Used: %dKB\n", size);
+
+	writef("[OK] FAT FS Check passed.\n");
 }
 
 // Overview:
@@ -398,12 +385,14 @@ check_write_block(void)
 //	2. check if the disk can work.
 //	3. read bitmap blocks from disk to memory.
 void
-fs_init(void)
+FAT_fs_init(void)
 {
-	read_super();
-	check_write_block();
-	read_bitmap();
+	load_FATfs(); // 加载和检查bpb块和FAT表
+	load_root(); // 将Root块加载到内存中
+	check_write_block(); // 检查写磁盘块是否能正常工作
 }
+
+//---------------------------文件管理逻辑-----------------------
 
 // Overview:
 //	Like pgdir_walk but for files.
