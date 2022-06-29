@@ -16,7 +16,7 @@ struct DIREnt root;
 u_int *FATtable;
 u_int nFATtable;
 
-void file_flush(struct File *);
+void file_flush(struct DIREnt *);
 int block_is_free(u_int);
 
 // ------------- 以下几个函数涉及块缓存的映射 -----------
@@ -392,7 +392,21 @@ FAT_fs_init(void)
 	check_write_block(); // 检查写磁盘块是否能正常工作
 }
 
-//---------------------------文件管理逻辑-----------------------
+//---------------------------文件块管理底层-----------------------
+
+static int getFileBlocks(u_int size) {
+	if (size % BY2BLK == 0) {
+		return size / BY2BLK;
+	}
+	else {
+		return size / BY2BLK + 1;
+	}
+}
+
+static void setFATent(int blockno, u_int value) {
+	user_assert(BLK2CLUS(blockno) >= 2);
+	FATtable[BLK2CLUS(blockno)-2] = value;
+}
 
 // Overview:
 //	Like pgdir_walk but for files.
@@ -408,99 +422,91 @@ FAT_fs_init(void)
 //		-E_NO_DISK if there's no space on the disk for an indirect block.
 //		-E_NO_MEM if there's no space in memory for an indirect block.
 //		-E_INVAL if filebno is out of range (it's >= NINDIRECT).
+// alloc为1时，表示为大于等于文件块数的块分配空间
+// 检索文件的第pdiskbno个块，并将其块号保存到*pdiskbno中
 int
-file_block_walk(struct File *f, u_int filebno, u_int **ppdiskbno, u_int alloc)
+file_map_block(struct DIREnt *file, u_int filebno, u_int *pdiskbno, u_int alloc)
 {
 	int r;
-	u_int *ptr;
+	u_int clus;
+	int nfileblk = getFileBlocks(file->DIR_FileSize);
 	void *blk;
 
-	if (filebno < NDIRECT) {
-		// Step 1: if the target block is corresponded to a direct pointer, just return the
-		// 	disk block number.
-		ptr = &f->f_direct[filebno];
-	} else if (filebno < NINDIRECT) {
-		// Step 2: if the target block is corresponded to the indirect block, but there's no
-		//	indirect block and `alloc` is set, create the indirect block.
-		if (f->f_indirect == 0) {
-			if (alloc == 0) {
-				return -E_NOT_FOUND;
-			}
-
-			if ((r = alloc_block()) < 0) {
-				return r;
-			}
-			f->f_indirect = r;
+	// 查询文件的指定块块号，若alloc为1，则分配不存在的块
+	if (filebno >= nfileblk) {
+		// 块不存在，需要进行分配
+		if (filebno >= MAXFILESIZE / BY2BLK) { // 文件太大
+			return -E_INVAL;
 		}
 
-		// Step 3: read the new indirect block to memory.
-		if ((r = read_block(f->f_indirect, &blk, 0)) < 0) {
-			return r;
+		// 1. 定位到最后一块
+		clus = file->DIR_FstClusHI * 65536 + file->DIR_DstClusLO;
+		for (int i = 0; i < nfileblk-1; i++) {
+			clus = FATtable[clus-2];
 		}
-		ptr = (u_int *)blk + filebno;
-	} else {
-		return -E_INVAL;
+
+		// 2. 继续分配块
+		for (int i = 0; i < (filebno-nfileblk+1); i++) {
+			int r = alloc_block();
+			if (r < 0) return r;
+
+			FATtable[clus-2] = BLK2CLUS(r);
+			clus = r;
+		}
+		FATtable[clus-2] = CLUS_FILEEND;
+		// 设置文件终止
+
+		*pdiskbno = CLUS2BLK(clus);
+	}
+	else {
+		clus = file->DIR_FstClusHI * 65536 + file->DIR_DstClusLO;
+		for (int i = 0; i < filebno; i++) {
+			// 一共进行filebno次迭代才能找到第filebno个块:filebno从0开始
+			clus = FATtable[clus-2];
+		}
+		*pdiskbno = CLUS2BLK(clus);
 	}
 
-	// Step 4: store the result into *ppdiskbno, and return 0.
-	*ppdiskbno = ptr;
-	return 0;
-}
-
-// OVerview:
-//	Set *diskbno to the disk block number for the filebno'th block in file f.
-// 	If alloc is set and the block does not exist, allocate it.
-//
-// Post-Condition:
-// 	Returns 0: success, < 0 on error.
-//	Errors are:
-//		-E_NOT_FOUND: alloc was 0 but the block did not exist.
-//		-E_NO_DISK: if a block needed to be allocated but the disk is full.
-//		-E_NO_MEM: if we're out of memory.
-//		-E_INVAL: if filebno is out of range.
-int
-file_map_block(struct File *f, u_int filebno, u_int *diskbno, u_int alloc)
-{
-	int r;
-	u_int *ptr;
-
-	// Step 1: find the pointer for the target block.
-	if ((r = file_block_walk(f, filebno, &ptr, alloc)) < 0) {
-		return r;
-	}
-
-	// Step 2: if the block not exists, and create is set, alloc one.
-	if (*ptr == 0) {
-		if (alloc == 0) {
-			return -E_NOT_FOUND;
-		}
-
-		if ((r = alloc_block()) < 0) {
-			return r;
-		}
-		*ptr = r;
-	}
-
-	// Step 3: set the pointer to the block in *diskbno and return 0.
-	*diskbno = *ptr;
 	return 0;
 }
 
 // Overview:
 //	Remove a block from file f.  If it's not there, just silently succeed.
+// 从链表上删除掉第filebno块
 int
-file_clear_block(struct File *f, u_int filebno)
+file_clear_block(struct DIREnt *file, u_int filebno)
 {
 	int r;
-	u_int *ptr;
 
-	if ((r = file_block_walk(f, filebno, &ptr, 0)) < 0) {
-		return r;
+	int nfileblk = getFileBlocks(file->DIR_FileSize);
+	if (filebno >= nfileblk) // 对应的块不存在
+		return 0;
+
+	// 1.移动到第filebno块
+	int clus = file->DIR_FstClusHI * 65536 + file->DIR_DstClusLO;
+	int preClus = 0;
+	for (int i = 0; i < filebno; i++) {
+		// 一共进行filebno次迭代才能找到第filebno个块:filebno从0开始
+		preClus = clus;
+		clus = FATtable[clus-2];
 	}
-
-	if (*ptr) {
-		free_block(*ptr);
-		*ptr = 0;
+	
+	if (FATtable[clus-2] == CLUS_FILEEND) {
+		if (preClus != 0) {
+			// 说明不是是第一块(第一块什么也不做)
+			FATtable[preClus-2] = CLUS_FILEEND;
+			free_block(CLUS2BLK(clus));
+		}
+	}
+	else {
+		if (preClus != 0) {
+			FATtable[preClus-2] = FATtable[clus-2];
+		}
+		else {
+			file->DIR_FstClusHI = FATtable[clus-2] >> 16;
+			file->DIR_DstClusLO = FATtable[clus-2] & 0xffff;
+		}
+		free_block(CLUS2BLK(clus));
 	}
 
 	return 0;
@@ -532,6 +538,8 @@ file_get_block(struct File *f, u_int filebno, void **blk)
 	return 0;
 }
 
+// ----------------------目录/文件路径逻辑------------------
+
 // Overview:
 //	Mark the offset/BY2BLK'th block dirty in file f by writing its first word to itself.
 int
@@ -548,6 +556,7 @@ file_dirty(struct File *f, u_int offset)
 	return 0;
 }
 
+// 从此开始！！
 // Overview:
 //	Try to find a file named "name" in dir.  If so, set *file to it.
 //
@@ -556,33 +565,30 @@ file_dirty(struct File *f, u_int offset)
 //		< 0 on error.
 /*** exercise 5.7 ***/
 int
-dir_lookup(struct File *dir, char *name, struct File **file)
+dir_lookup(struct DIREnt *dir, char *name, struct DIREnt **file)
 {
 	int r;
 	u_int i, j, nblock;
 	void *blk;
-	struct File *f;
+	struct DIREnt *f;
+	
+	int clus = dir->DIR_FstClusHI * 65536 + dir->DIR_DstClusLO;
 
-	// Step 1: Calculate nblock: how many blocks are there in this dir?
-	if (dir->f_size % BY2BLK == 0) {
-		nblock = dir->f_size / BY2BLK;
-	}
-	else {
-		nblock = dir->f_size / BY2BLK + 1;
-	}
-
-	for (i = 0; i < nblock; i++) {
+	for (i = clus; i != CLUS_FILEEND; i = FATtable[i-2]) {
 		// Step 2: Read the i'th block of the dir.
 		// Hint: Use file_get_block.
-		r = file_get_block(dir, i, &blk);
+		r = read_block(CLUS2BLK(i), blk, 0);
 		if (r < 0) return r;
 
 		// Step 3: Find target file by file name in all files on this block.
 		// If we find the target file, set the result to *file and set f_dir field.
-		for (j = 0; j < BY2BLK / BY2FILE; j++) {
-			f = ((struct File *)blk) + j;
-			if (strcmp(f->f_name, name) == 0) {
-				f->f_dir = dir;
+		for (j = 0; j < BY2BLK / BY2DIRENT; j++) {
+			f = ((struct DIREnt *)blk) + j;
+			if (f->DIR_Attr == ATTR_LONG_NAME_MASK) continue;
+			// 跳过长文件名项
+
+			// 留坑，之后改成长文件名判断
+			if (strcmp(f->DIR_Name, name) == 0) {
 				*file = f;
 				return 0;
 			}
@@ -598,46 +604,56 @@ dir_lookup(struct File *dir, char *name, struct File **file)
 //	Alloc a new File structure under specified directory. Set *file
 //	to point at a free File structure in dir.
 int
-dir_alloc_file(struct File *dir, struct File **file)
+dir_alloc_file(struct DIREnt *dir, struct DIREnt **file)
 {
 	int r;
-	u_int nblock, i, j;
+	u_int nblock, i, j, lastClus;
 	void *blk;
-	struct File *f;
+	struct DIREnt *f;
 
-	nblock = dir->f_size / BY2BLK;
+	int clus = dir->DIR_FstClusHI * 65536 + dir->DIR_DstClusLO;
 
-	for (i = 0; i < nblock; i++) {
-		// read the block.
-		if ((r = file_get_block(dir, i, &blk)) < 0) {
-			return r;
-		}
+	for (i = clus; i != CLUS_FILEEND; i = FATtable[i-2]) {
+		// Step 2: Read the i'th block of the dir.
+		// Hint: Use file_get_block.
+		r = read_block(CLUS2BLK(i), blk, 0);
+		if (r < 0) return r;
 
-		f = blk;
+		// Step 3: Find target file by file name in all files on this block.
+		// If we find the target file, set the result to *file and set f_dir field.
+		for (j = 0; j < BY2BLK / BY2DIRENT; j++) {
+			f = ((struct DIREnt *)blk) + j;
+			if (f->DIR_Attr == ATTR_LONG_NAME_MASK) continue;
+			// 跳过长文件名项
 
-		for (j = 0; j < FILE2BLK; j++) {
-			if (f[j].f_name[0] == '\0') { // found free File structure.
-				*file = &f[j];
+			// 文件名第一位为0，表示目录项空闲
+			if (f->DIR_Name[0] == 0) {
+				*file = f;
 				return 0;
 			}
 		}
+		lastClus = i;
 	}
 
-	// no free File structure in exists data block.
-	// new data block need to be created.
-	dir->f_size += BY2BLK;
-	if ((r = file_get_block(dir, i, &blk)) < 0) {
-		return r;
-	}
+	// 没有找到空闲的目录项，需要重新分配一个
+	r = alloc_block();
+	if (r < 0) return r;
+	FATtable[lastClus-2] = BLK2CLUS(r);
+	FATtable[BLK2CLUS(r)-2] = CLUS_FILEEND;
+
+	// 从新分配的块中提取第一项作为返回值
+	int isnew;
+	r = read_block(r, blk, &isnew);
+	if (r < 0) return r;
 	f = blk;
-	*file = &f[0];
+	*file = f;
 
 	return 0;
 }
 
 // Overview:
 //	Skip over slashes.
-char *
+static char *
 skip_slash(char *p)
 {
 	while (*p == '/') {
@@ -655,16 +671,16 @@ skip_slash(char *p)
 //	If we cannot find the file but find the directory it should be in, set
 //	*pdir and copy the final path element into lastelem.
 int
-walk_path(char *path, struct File **pdir, struct File **pfile, char *lastelem)
+walk_path(char *path, struct DIREnt **pdir, struct DIREnt **pfile, char *lastelem)
 {
 	char *p;
 	char name[MAXNAMELEN];
-	struct File *dir, *file;
+	struct DIREnt *dir, *file;
 	int r;
 
 	// start at the root.
 	path = skip_slash(path);
-	file = &super->s_root;
+	file = &root;
 	dir = 0;
 	name[0] = 0;
 
@@ -691,7 +707,7 @@ walk_path(char *path, struct File **pdir, struct File **pfile, char *lastelem)
 		name[path - p] = '\0';
 		path = skip_slash(path);
 
-		if (dir->f_type != FTYPE_DIR) {
+		if (dir->DIR_Attr & ATTR_ARCHIVE == 0) {
 			return -E_NOT_FOUND;
 		}
 
@@ -719,6 +735,8 @@ walk_path(char *path, struct File **pdir, struct File **pfile, char *lastelem)
 	*pfile = file;
 	return 0;
 }
+
+// --------------------- 文件逻辑 -------------------
 
 // Overview:
 //	Open "path".
@@ -854,7 +872,7 @@ void
 fs_sync(void)
 {
 	int i;
-	for (i = 0; i < super->s_nblocks; i++) {
+	for (i = 0; i < nblocks; i++) {
 		if (block_is_dirty(i)) {
 			write_block(i);
 		}
