@@ -1,18 +1,13 @@
 #include "lib.h"
 #include <fs.h>
 #include <mmu.h>
-
-/* IDE disk number to look on for our file system */
-#define DISKNO		1
-
-#define BY2SECT		512	/* Bytes per disk sector */
-#define SECT2BLK	(BY2BLK/BY2SECT)	/* sectors to a block */
+#include "fat32.h"
 
 /* Disk block n, when in memory, is mapped into the file system
  * server's address space at DISKMAP+(n*BY2BLK). */
-#define DISKMAP		0x10000000
+#define DISKMAP		0x30000000
 
-/* Maximum disk size we can handle (1GB) */
+/* Maximum disk size we can handle (0.5GB) */
 #define DISKMAX		0x20000000
 
 /* ide.c */
@@ -30,9 +25,5 @@ void file_flush(struct File *);
 
 void fs_init(void);
 void fs_sync(void);
-extern u_int *bitmap;
 int map_block(u_int);
 int alloc_block(void);
-
-/* test.c */
-void fs_test(void);
