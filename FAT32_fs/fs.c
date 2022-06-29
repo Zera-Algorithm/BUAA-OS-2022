@@ -449,8 +449,14 @@ file_map_block(struct DIREnt *file, u_int filebno, u_int *pdiskbno, u_int alloc)
 		for (int i = 0; i < (filebno-nfileblk+1); i++) {
 			int r = alloc_block();
 			if (r < 0) return r;
-
-			FATtable[clus-2] = BLK2CLUS(r);
+			
+			if (clus == 0) { // 对应文件大小为0，所以初始块号为0的情况，先分配初始块
+				file->DIR_FstClusHI = r >> 16;
+				file->DIR_DstClusLO = r & 0xffff;
+			}
+			else {
+				FATtable[clus-2] = BLK2CLUS(r);
+			}
 			clus = r;
 		}
 		FATtable[clus-2] = CLUS_FILEEND;
@@ -482,6 +488,7 @@ file_clear_block(struct DIREnt *file, u_int filebno)
 	if (filebno >= nfileblk) // 对应的块不存在
 		return 0;
 
+	// 此时不会出现文件块数为0的情况
 	// 1.移动到第filebno块
 	int clus = file->DIR_FstClusHI * 65536 + file->DIR_DstClusLO;
 	int preClus = 0;
@@ -520,7 +527,7 @@ file_clear_block(struct DIREnt *file, u_int filebno)
 // Post-Condition:
 //	return 0 on success, and read the data to `blk`, return <0 on error.
 int
-file_get_block(struct File *f, u_int filebno, void **blk)
+file_get_block(struct DIREnt *f, u_int filebno, void **blk)
 {
 	int r;
 	u_int diskbno;
@@ -543,7 +550,7 @@ file_get_block(struct File *f, u_int filebno, void **blk)
 // Overview:
 //	Mark the offset/BY2BLK'th block dirty in file f by writing its first word to itself.
 int
-file_dirty(struct File *f, u_int offset)
+file_dirty(struct DIREnt *f, u_int offset)
 {
 	int r;
 	void *blk;
@@ -745,7 +752,7 @@ walk_path(char *path, struct DIREnt **pdir, struct DIREnt **pfile, char *lastele
 //	On success set *pfile to point at the file and return 0.
 //	On error return < 0.
 int
-file_open(char *path, struct File **file)
+FAT_file_open(char *path, struct DIREnt **file)
 {
 	return walk_path(path, 0, file, 0);
 }
@@ -757,11 +764,11 @@ file_open(char *path, struct File **file)
 //	On success set *file to point at the file and return 0.
 // 	On error return < 0.
 int
-file_create(char *path, struct File **file)
+FAT_file_create(char *path, struct DIREnt **file)
 {
 	char name[MAXNAMELEN];
 	int r;
-	struct File *dir, *f;
+	struct DIREnt *dir, *f;
 
 	if ((r = walk_path(path, &dir, &f, name)) == 0) {
 		return -E_FILE_EXISTS;
@@ -775,7 +782,7 @@ file_create(char *path, struct File **file)
 		return r;
 	}
 
-	strcpy((char *)f->f_name, name);
+	strcpy((char *)f->DIR_Name, name);
 	*file = f;
 	return 0;
 }
@@ -792,49 +799,35 @@ file_create(char *path, struct File **file)
 //
 // Hint: use file_clear_block.
 void
-file_truncate(struct File *f, u_int newsize)
+file_truncate(struct DIREnt *f, u_int newsize)
 {
 	u_int bno, old_nblocks, new_nblocks;
 
-	old_nblocks = f->f_size / BY2BLK + 1;
-	new_nblocks = newsize / BY2BLK + 1;
+	old_nblocks = getFileBlocks(f->DIR_FileSize);
+	new_nblocks = getFileBlocks(newsize);
 
-	if (newsize == 0) {
-		new_nblocks = 0;
+	// 相比于索引式，流程大大简化
+	for (bno = new_nblocks; bno < old_nblocks; bno++) {
+		file_clear_block(f, bno);
 	}
 
-	if (new_nblocks <= NDIRECT) {
-		for (bno = new_nblocks; bno < old_nblocks; bno++) {
-			file_clear_block(f, bno);
-		}
-		if (f->f_indirect) {
-			free_block(f->f_indirect);
-			f->f_indirect = 0;
-		}
-	} else {
-		for (bno = new_nblocks; bno < old_nblocks; bno++) {
-			file_clear_block(f, bno);
-		}
-	}
-
-	f->f_size = newsize;
+	f->DIR_FileSize = newsize;
 }
 
 // Overview:
 //	Set file size to newsize.
 int
-file_set_size(struct File *f, u_int newsize)
+file_set_size(struct DIREnt *f, u_int newsize)
 {
-	if (f->f_size > newsize) {
+	if (f->DIR_FileSize > newsize) {
 		file_truncate(f, newsize);
 	}
 
-	f->f_size = newsize;
+	// 若newsize > f_size，会自动扩张，
+	// 之后map时会通过file_map_block为新增的空间分配新块
+	f->DIR_FileSize = newsize;
 
-	if (f->f_dir) {
-		file_flush(f->f_dir);
-	}
-
+	// 暂时不能刷新目录文件，只能通过用户进程最后调用sync来实现内容的同步
 	return 0;
 }
 
@@ -846,7 +839,7 @@ file_set_size(struct File *f, u_int newsize)
 //
 // Hint: use file_map_block, block_is_dirty, and write_block.
 void
-file_flush(struct File *f)
+file_flush(struct DIREnt *f)
 {
 	// Your code here
 	u_int nblocks;
@@ -854,7 +847,7 @@ file_flush(struct File *f)
 	u_int diskno;
 	int r;
 
-	nblocks = f->f_size / BY2BLK + 1;
+	nblocks = f->DIR_FileSize / BY2BLK + 1;
 
 	for (bno = 0; bno < nblocks; bno++) {
 		if ((r = file_map_block(f, bno, &diskno, 0)) < 0) {
@@ -869,7 +862,7 @@ file_flush(struct File *f)
 // Overview:
 //	Sync the entire file system.  A big hammer.
 void
-fs_sync(void)
+FAT_fs_sync(void)
 {
 	int i;
 	for (i = 0; i < nblocks; i++) {
@@ -882,22 +875,18 @@ fs_sync(void)
 // Overview:
 //	Close a file.
 void
-file_close(struct File *f)
+FAT_file_close(struct DIREnt *f)
 {
-	// Flush the file itself, if f's f_dir is set, flush it's f_dir.
 	file_flush(f);
-	if (f->f_dir) {
-		file_flush(f->f_dir);
-	}
 }
 
 // Overview:
 //	Remove a file by truncating it and then zeroing the name.
 int
-file_remove(char *path)
+FAT_file_remove(char *path)
 {
 	int r;
-	struct File *f;
+	struct DIREnt *f;
 
 	// Step 1: find the file on the disk.
 	if ((r = walk_path(path, 0, &f, 0)) < 0) {
@@ -908,14 +897,10 @@ file_remove(char *path)
 	file_truncate(f, 0);
 
 	// Step 3: clear it's name.
-	f->f_name[0] = '\0';
+	f->DIR_Name[0] = '\0'; // 其实应当设为0xE5，待之后改吧
 
 	// Step 4: flush the file.
 	file_flush(f);
-	if (f->f_dir) {
-		file_flush(f->f_dir);
-	}
-
 	return 0;
 }
 
