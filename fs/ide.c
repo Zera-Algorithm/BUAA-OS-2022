@@ -36,12 +36,11 @@ ide_read(u_int diskno, u_int secno, void *dst, u_int nsecs)
 	/* Step1: set IDE_ID. */
 	// make C compiler use diskno as a memory address, not register.
 	// Now I know why stack need to alloc 4 empty positions for arguments.
-	ret = syscall_write_dev(&diskno, 0x13000010, 4);
-	if (ret < 0) user_panic("Disk read panic^^^^");
-
 	while (offset_begin + offset < offset_end) {
 		// Your code here
 		// error occurred, then panic.
+		ret = syscall_write_dev(&diskno, 0x13000010, 4);
+		if (ret < 0) user_panic("Disk read panic^^^^");
 		
 		/* Step2: set read offset. */
 		abs_offset = offset_begin + offset;
@@ -95,10 +94,9 @@ ide_write(u_int diskno, u_int secno, void *src, u_int nsecs)
 	writef("diskno: %d\n", diskno);
 
 	/* Step1: set IDE_ID. */
-	ret = syscall_write_dev(&diskno, 0x13000010, 4);
-	if (ret < 0) user_panic("Disk write panic^^^^");
-
 	while (offset_begin + offset < offset_end) {
+		ret = syscall_write_dev(&diskno, 0x13000010, 4);
+		if (ret < 0) user_panic("Disk write panic^^^^");
 		// Your code here
 		// error occurred, then panic.
 		
