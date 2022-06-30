@@ -84,7 +84,6 @@ void user_bzero(void *v, u_int n)
 void
 pgfault(u_int va)
 {
-	writef("va = %x\n", va);
 	u_int tmp = (u_int)USTACKTOP; // a page of invalid mem.
 	int r;
 	int env_id = syscall_getenvid();
@@ -98,16 +97,13 @@ pgfault(u_int va)
 	if ((perm & PTE_COW) == 0) {
 		if ((perm & PTE_FS) != 0) {
 			ppn = ((*vpt)[pn]) >> 12;
-			writef("before dirty: %d(ppn = %d)\n", pages[ppn].blockCacheChanged, ppn);
-			writef("(user)pages_pa = %x, pages_start = %x, sizeof(Page) = %d\n", 
-				(*vpt)[((u_int)(&pages[ppn]))>>12], (*vpt)[((u_int)pages)>>12], sizeof(struct Page));
+			// writef("before dirty: %d(ppn = %d)\n", pages[ppn].blockCacheChanged, ppn);
+
 			// 此块物理内存对应块缓存
 			pages[ppn].blockCacheChanged = 1;
 
 			// 重新映射自己的块，解除TLB原来的映射
 			syscall_mem_map(0, va, 0, va, PTE_FS | PTE_R | PTE_V);
-
-			writef("set dirty: %d(ppn = %d)\n", pages[ppn].blockCacheChanged, ppn);
 			return;
 		}
 		user_panic("Error: PAGE FAULT Happens when PTE_COW is not set!!");

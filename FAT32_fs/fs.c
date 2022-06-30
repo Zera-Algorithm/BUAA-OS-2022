@@ -362,14 +362,14 @@ load_FATfs() {
 	// 1. 加载FAT表
 	for (i = 1; i <= 1 + NFATBLOCK; i++) {
 		r = read_block(i, blk, 0);
-		writef("Read1\n");
 		if (r < 0) {
 			user_panic("\nError when read FAT table!");
 		}
 	}
 
 	// 2. 计算已用容量
-	nFATtable = bpb->BPB_FATSz32;
+	nFATtable = bpb->BPB_FATSz32 * 512 / 4;
+	FATtable = (u_int *)diskaddr(1);
 	int usedFATent = 0;
 	for (i = 0; i < nFATtable; i++) {
 		if (FATtable[i] != CLUS_FREE) {
@@ -391,6 +391,7 @@ load_FATfs() {
 void
 FAT_fs_init(void)
 {
+	writef(">>>>>>>>>>>>>>>>>>>>  Initializing FAT FS(/root1)  <<<<<<<<<<<<<<<<<<\n");
 	load_FATfs(); // 加载和检查bpb块和FAT表
 	load_root(); // 将Root块加载到内存中
 	check_write_block(); // 检查写磁盘块是否能正常工作

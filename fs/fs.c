@@ -93,7 +93,6 @@ map_block(u_int blockno)
 	// Step 2: Alloc a page of memory for this block via syscall.
 	r = syscall_mem_alloc(syscall_getenvid(), diskaddr(blockno), PTE_V | PTE_R | PTE_FS);
 	pa = PTE_ADDR((*vpt)[diskaddr(blockno)>>12]);
-	writef("reset to 0(ppn = %d) (map_block)\n", pa>>12);
 	pages[pa>>12].blockCacheChanged = 0;
 	return r;
 }
@@ -211,7 +210,6 @@ write_block(u_int blockno)
 	// 清空blockCacheChanged字段，防止再次出现页写入异常
 	pa = PTE_ADDR((*vpt)[diskaddr(blockno)>>12]);
 
-	writef("reset to 0(ppn = %d)\n", pa>>12);
 	pages[pa>>12].blockCacheChanged = 0;
 
 	// 重设权限位
@@ -405,6 +403,7 @@ check_write_block(void)
 void
 fs_init(void)
 {
+	writef(">>>>>>>>>>>>>>>>>>>>  Initalizing EXT FS(/root0)  <<<<<<<<<<<<<<<<<<<\n");
 	read_super();
 	check_write_block();
 	read_bitmap();
