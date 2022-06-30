@@ -144,7 +144,7 @@ NESTED(do_refill,0 , sp)
 			j		NoCOW
 			nop
 
-DELREAD: // 意思是删除读取权限
+DELREAD: // 意思是删除写入权限
 			and		k1,0xfffffbff
 
 // ------到此结束

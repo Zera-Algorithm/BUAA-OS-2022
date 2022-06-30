@@ -96,13 +96,16 @@ pgfault(u_int va)
 
 	if ((perm & PTE_COW) == 0) {
 		if ((perm & PTE_FS) != 0) {
-			writef("set dirty\n");
-
 			// 此块物理内存对应块缓存
 			ppn = ((*vpt)[pn]) >> 12;
 			pages[ppn].blockCacheChanged = 1;
+
+			writef("set dirty: %d(ppn = %d)\n", pages[ppn].blockCacheChanged, ppn);
+
 			// 重新映射自己的块，解除TLB原来的映射
 			syscall_mem_map(0, va, 0, va, PTE_FS | PTE_R | PTE_V);
+
+			writef("set dirty: %d(ppn = %d)\n", pages[ppn].blockCacheChanged, ppn);
 			return;
 		}
 		user_panic("Error: PAGE FAULT Happens when PTE_COW is not set!!");

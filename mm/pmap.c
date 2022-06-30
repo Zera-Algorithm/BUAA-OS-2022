@@ -697,7 +697,8 @@ void pageout(int va, int context, struct Trapframe *tf)
 }
 
 u_int checkFSCache(u_int pa) {
-	printf("checkFSCache: %d\n", pa2page(pa)->blockCacheChanged);
+	printf("checkFSCache: %d(ppn=%d)\n", 
+			pa2page(pa)->blockCacheChanged, pa2page(pa)-pages);
 	return pa2page(pa)->blockCacheChanged;
 }
 
