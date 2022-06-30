@@ -20,6 +20,8 @@ USERLIB :=	$(user_dir)/printf.o \
 		$(user_dir)/console.o \
 		$(user_dir)/fprintf.o
 
+FATLIB := $(FATfs_dir)/fs.o
+
 FSLIB :=	fs.o \
 		ide.o \
 		test.o

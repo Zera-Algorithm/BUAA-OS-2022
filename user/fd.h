@@ -53,7 +53,9 @@ struct Stat {
 struct Filefd {
 	struct Fd f_fd;
 	u_int f_fileid;
+	int fstype;
 	struct File f_file;
+	struct DIREnt f_FATfile;
 };
 
 int fd_alloc(struct Fd **fd);

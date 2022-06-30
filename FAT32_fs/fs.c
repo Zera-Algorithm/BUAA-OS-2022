@@ -230,7 +230,7 @@ write_block(u_int blockno)
 //
 // Post-Condition:
 //	Return 1 if the block is free, else 0.
-int
+static int
 block_is_free(u_int blockno)
 {
 	if (bpb == 0 || blockno >= nblocks) {
@@ -247,7 +247,7 @@ block_is_free(u_int blockno)
 // Overview:
 //	Mark a block as free in the bitmap.
 /*** exercise 5.3 ***/
-void
+static void
 free_block(u_int blockno)
 {
 	// Step 1: Check if the parameter `blockno` is valid (`blockno` can't be zero).
@@ -265,7 +265,7 @@ free_block(u_int blockno)
 // Post-Condition:
 //	Return block number allocated on success,
 //		   -E_NO_DISK if we are out of blocks.
-int
+static int
 alloc_block_num(void)
 {
 	int i;
@@ -283,7 +283,7 @@ alloc_block_num(void)
 
 // Overview:
 //	Allocate a block -- first find a free block in the bitmap, then map it into memory.
-int
+static int
 alloc_block(void)
 {
 	int r, bno;
@@ -314,7 +314,7 @@ check_write_block(void)
 
 }
 
-void
+static void
 load_root(void)
 {
 	// 分配空间，建立公用的rootDirEnt
@@ -325,7 +325,8 @@ load_root(void)
     root.DIR_FstClusHI = (bpb->BPB_RootClus >> 16) & 0xffff;
 }
 
-void load_FATfs() {
+static void
+load_FATfs() {
 	void *blk;
 	int r, i;
 
@@ -424,7 +425,7 @@ static void setFATent(int blockno, u_int value) {
 //		-E_INVAL if filebno is out of range (it's >= NINDIRECT).
 // alloc为1时，表示为大于等于文件块数的块分配空间
 // 检索文件的第pdiskbno个块，并将其块号保存到*pdiskbno中
-int
+static int
 file_map_block(struct DIREnt *file, u_int filebno, u_int *pdiskbno, u_int alloc)
 {
 	int r;
@@ -479,7 +480,7 @@ file_map_block(struct DIREnt *file, u_int filebno, u_int *pdiskbno, u_int alloc)
 // Overview:
 //	Remove a block from file f.  If it's not there, just silently succeed.
 // 从链表上删除掉第filebno块
-int
+static int
 file_clear_block(struct DIREnt *file, u_int filebno)
 {
 	int r;
@@ -527,7 +528,7 @@ file_clear_block(struct DIREnt *file, u_int filebno)
 // Post-Condition:
 //	return 0 on success, and read the data to `blk`, return <0 on error.
 int
-file_get_block(struct DIREnt *f, u_int filebno, void **blk)
+FAT_file_get_block(struct DIREnt *f, u_int filebno, void **blk)
 {
 	int r;
 	u_int diskbno;
@@ -550,12 +551,12 @@ file_get_block(struct DIREnt *f, u_int filebno, void **blk)
 // Overview:
 //	Mark the offset/BY2BLK'th block dirty in file f by writing its first word to itself.
 int
-file_dirty(struct DIREnt *f, u_int offset)
+FAT_file_dirty(struct DIREnt *f, u_int offset)
 {
 	int r;
 	void *blk;
 
-	if ((r = file_get_block(f, offset / BY2BLK, &blk)) < 0) {
+	if ((r = FAT_file_get_block(f, offset / BY2BLK, &blk)) < 0) {
 		return r;
 	}
 
@@ -571,7 +572,7 @@ file_dirty(struct DIREnt *f, u_int offset)
 //	return 0 on success, and set the pointer to the target file in `*file`.
 //		< 0 on error.
 /*** exercise 5.7 ***/
-int
+static int
 dir_lookup(struct DIREnt *dir, char *name, struct DIREnt **file)
 {
 	int r;
@@ -610,7 +611,7 @@ dir_lookup(struct DIREnt *dir, char *name, struct DIREnt **file)
 // Overview:
 //	Alloc a new File structure under specified directory. Set *file
 //	to point at a free File structure in dir.
-int
+static int
 dir_alloc_file(struct DIREnt *dir, struct DIREnt **file)
 {
 	int r;
@@ -677,7 +678,7 @@ skip_slash(char *p)
 //	the file is in.
 //	If we cannot find the file but find the directory it should be in, set
 //	*pdir and copy the final path element into lastelem.
-int
+static int
 walk_path(char *path, struct DIREnt **pdir, struct DIREnt **pfile, char *lastelem)
 {
 	char *p;
@@ -798,7 +799,7 @@ FAT_file_create(char *path, struct DIREnt **file)
 //	(Remember to clear the f->f_indirect pointer so you'll know whether it's valid!)
 //
 // Hint: use file_clear_block.
-void
+static void
 file_truncate(struct DIREnt *f, u_int newsize)
 {
 	u_int bno, old_nblocks, new_nblocks;
@@ -817,7 +818,7 @@ file_truncate(struct DIREnt *f, u_int newsize)
 // Overview:
 //	Set file size to newsize.
 int
-file_set_size(struct DIREnt *f, u_int newsize)
+FAT_file_set_size(struct DIREnt *f, u_int newsize)
 {
 	if (f->DIR_FileSize > newsize) {
 		file_truncate(f, newsize);
@@ -838,7 +839,7 @@ file_set_size(struct DIREnt *f, u_int newsize)
 //	check whether that disk block is dirty.  If so, write it out.
 //
 // Hint: use file_map_block, block_is_dirty, and write_block.
-void
+static void
 file_flush(struct DIREnt *f)
 {
 	// Your code here

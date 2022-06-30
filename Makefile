@@ -10,6 +10,7 @@ user_dir	  := user
 init_dir	  := init
 lib_dir		  := lib
 fs_dir		  := fs
+FATfs_dir	  := FAT32_fs
 mm_dir		  := mm
 tools_dir	  := tools
 vmlinux_elf	  := gxemul/vmlinux
@@ -22,6 +23,7 @@ objects		  := $(boot_dir)/start.o			  \
 			   	 $(drivers_dir)/gxconsole/console.o \
 				 $(lib_dir)/*.o				  \
 				 $(user_dir)/*.x \
+				 $(FATfs_dir)/*.o \
 				 $(fs_dir)/*.x \
 				 $(mm_dir)/*.o
 

@@ -12,6 +12,8 @@
 
 struct Open {
 	struct File *o_file;	// mapped descriptor for open file
+	struct DIREnt *o_FATfile;
+	int fstype; // 0: EXT; 1: FAT
 	u_int o_fileid;		// file id
 	int o_mode;		// open mode
 	struct Filefd *o_ff;	// va of filefd page
@@ -93,7 +95,7 @@ open_lookup(u_int envid, u_int fileid, struct Open **po)
 // Serve requests, sending responses back to envid.
 // To send a result back, ipc_send(envid, r, 0, 0).
 // To include a page, ipc_send(envid, r, srcva, perm).
-
+// 此处按照路径转接到对应的文件系统
 void
 serve_open(u_int envid, struct Fsreq_open *rq)
 {
