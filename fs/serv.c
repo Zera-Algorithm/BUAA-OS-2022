@@ -119,6 +119,7 @@ serve_open(u_int envid, struct Fsreq_open *rq)
 	int fileid;
 	int r;
 	struct Open *o;
+	struct DIREnt *dirent;
 
 	// Copy in the path, making sure it's null-terminated
 	user_bcopy(rq->req_path, path, MAXPATHLEN);
@@ -154,7 +155,6 @@ serve_open(u_int envid, struct Fsreq_open *rq)
 		o->fstype = 0; // 设定文件系统类型
 	}
 	else if (strncmp(path, "/root1", 6) == 0) {
-		struct DIREnt *dirent;
 		// FAT32文件系统
 		if ((r = open_alloc(&o)) < 0) {
 			user_panic("open_alloc failed: %d, invalid path: %s", r, path);
@@ -178,6 +178,8 @@ serve_open(u_int envid, struct Fsreq_open *rq)
 	// 4. Fill out the Filefd structure
 	ff = (struct Filefd *)o->o_ff;
 	ff->f_file = *f;
+	ff->fstype = o->fstype;
+	ff->f_FATfile = *dirent;
 	ff->f_fileid = o->o_fileid;
 	o->o_mode = rq->req_omode;
 	ff->f_fd.fd_omode = o->o_mode;

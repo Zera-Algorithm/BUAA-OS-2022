@@ -55,7 +55,12 @@ open(const char *path, int mode)
 
 	// Step 4: Alloc memory, map the file content into memory.
 	size = (ffd->fstype == 0) ? ffd->f_file.f_size : ffd->f_FATfile.DIR_FileSize;
+
+	// writef("size = %d, DIREnt_size = %d, fstype = %d\n", size, ffd->f_FATfile.DIR_FileSize, ffd->fstype);
+	// writef("EXT_Size = %d\n", ffd->f_file.f_size);
+
 	for (i = 0; i < size; i += BY2PG) {
+		// writef("Map page %d.\n", i);
 		fsipc_map(ffd->f_fileid, i, va + i);
 		// each time map a single page for va.
 	}
