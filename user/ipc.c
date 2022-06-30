@@ -18,7 +18,7 @@ ipc_send(u_int whom, u_int val, u_int srcva, u_int perm)
 
 	while ((r = syscall_ipc_can_send(whom, val, srcva, perm)) == -E_IPC_NOT_RECV) {
 		syscall_yield();
-		//writef("QQ");
+		// writef("QQ");
 	}
 
 	if (r == 0) {

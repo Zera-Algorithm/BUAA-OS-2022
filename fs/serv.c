@@ -127,17 +127,20 @@ serve_open(u_int envid, struct Fsreq_open *rq)
 	if (strncmp(path, "/root0", 6) != 0 && strncmp(path, "/root1", 6) != 0) {
 		// 不符合规则的文件名
 		ipc_send(envid, -E_INVAL, 0, 0);
+		return;
 	}
 
 	// 1. Find a file id.
 	if ((r = open_alloc(&o)) < 0) {
 		user_panic("open_alloc failed: %d, invalid path: %s", r, path);
 		ipc_send(envid, r, 0, 0);
+		return;
 	}
 
 	fileid = r;
 
 	if (strncmp(path, "/root0", 6) == 0) {
+		// writef("route to root0\n");
 		// 自带文件系统
 		// 2. Open the file.
 		if ((r = file_open((char *)(path+6), &f)) < 0) { // 跳过前缀
@@ -149,8 +152,6 @@ serve_open(u_int envid, struct Fsreq_open *rq)
 		// 3. Save the file pointer.
 		o->o_file = f;
 		o->fstype = 0; // 设定文件系统类型
-
-		
 	}
 	else if (strncmp(path, "/root1", 6) == 0) {
 		struct DIREnt *dirent;
@@ -158,6 +159,7 @@ serve_open(u_int envid, struct Fsreq_open *rq)
 		if ((r = open_alloc(&o)) < 0) {
 			user_panic("open_alloc failed: %d, invalid path: %s", r, path);
 			ipc_send(envid, r, 0, 0);
+			return;
 		}
 
 		fileid = r;
