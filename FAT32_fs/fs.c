@@ -593,6 +593,8 @@ dir_lookup(struct DIREnt *dir, char *name, struct DIREnt **file)
 			if (f->DIR_Attr == ATTR_LONG_NAME_MASK) continue;
 			// 跳过长文件名项
 
+			writef("Find file: %s\n", f->DIR_Name);
+
 			// 留坑，之后改成长文件名判断
 			if (strcmp(f->DIR_Name, name) == 0) {
 				*file = f;
@@ -713,7 +715,7 @@ walk_path(char *path, struct DIREnt **pdir, struct DIREnt **pfile, char *lastele
 		name[path - p] = '\0';
 		path = skip_slash(path);
 
-		if ((dir->DIR_Attr & ATTR_ARCHIVE) == 0) {
+		if ((dir->DIR_Attr & ATTR_ARCHIVE) == 1) {
 			return -E_NOT_FOUND;
 		}
 
@@ -729,7 +731,6 @@ walk_path(char *path, struct DIREnt **pdir, struct DIREnt **pfile, char *lastele
 
 				*pfile = 0;
 			}
-
 			return r;
 		}
 	}
@@ -752,7 +753,8 @@ walk_path(char *path, struct DIREnt **pdir, struct DIREnt **pfile, char *lastele
 //	On error return < 0.
 int
 FAT_file_open(char *path, struct DIREnt **file)
-{
+{	
+	writef("prepare to open path: %s\n", path);
 	return walk_path(path, 0, file, 0);
 }
 

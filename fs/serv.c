@@ -140,7 +140,7 @@ serve_open(u_int envid, struct Fsreq_open *rq)
 	if (strncmp(path, "/root0", 6) == 0) {
 		// 自带文件系统
 		// 2. Open the file.
-		if ((r = file_open((char *)(path+7), &f)) < 0) { // 跳过前缀
+		if ((r = file_open((char *)(path+6), &f)) < 0) { // 跳过前缀
 		//	user_panic("file_open failed: %d, invalid path: %s", r, path);
 			ipc_send(envid, r, 0, 0);
 			return ;
@@ -162,7 +162,7 @@ serve_open(u_int envid, struct Fsreq_open *rq)
 
 		fileid = r;
 
-		if ((r = FAT_file_open((char *)(path+7), &dirent)) < 0) {
+		if ((r = FAT_file_open((char *)(path+6), &dirent)) < 0) {
 		//	user_panic("file_open failed: %d, invalid path: %s", r, path);
 			ipc_send(envid, r, 0, 0);
 			return;
@@ -282,10 +282,10 @@ serve_remove(u_int envid, struct Fsreq_remove *rq)
 	if (strncmp(path, "/root0", 6) == 0) {
 		// Step 2: Remove file from file system and response to user-level process.
 		// Call file_remove and ipc_send an approprite value to corresponding env.
-		r = file_remove(path+7);
+		r = file_remove(path+6);
 	}
 	else if (strncmp(path, "/root1", 6) == 0) {
-		r = FAT_file_remove(path+7);
+		r = FAT_file_remove(path+6);
 	}
 	else {
 		r = -E_INVAL;
