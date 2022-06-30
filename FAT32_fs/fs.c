@@ -356,12 +356,13 @@ load_FATfs() {
 		user_panic("FAT FS is too large to contain!");
 	}
 	int size = nblocks * BY2BLK / 1024 / 1024; //MB
-	writef("FAT size:\nTotal: %dMB, ", size);
+	writef("[FAT size] Total: %dMB, ", size);
 
 	// FAT表处理
 	// 1. 加载FAT表
 	for (i = 1; i <= 1 + NFATBLOCK; i++) {
 		r = read_block(i, blk, 0);
+		writef("Read1\n");
 		if (r < 0) {
 			user_panic("\nError when read FAT table!");
 		}

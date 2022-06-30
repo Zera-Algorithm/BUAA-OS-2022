@@ -117,6 +117,9 @@ typedef struct LongNameEnt {
     char        LDIR_Name3[4];
 } LongNameEnt;
 
+#pragma pack()
+// 到这里就取消pack，防止错误传播
+
 #define ATTR_READ_ONLY  0x01
 #define ATTR_HIDDEN     0x02
 #define ATTR_SYSTEM     0x04

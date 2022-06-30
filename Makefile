@@ -17,7 +17,7 @@ vmlinux_elf	  := gxemul/vmlinux
 
 link_script   := $(tools_dir)/scse0_3.lds
 
-modules		  := boot drivers init lib mm user fs
+modules		  := boot drivers init lib mm user fs FAT32_fs
 objects		  := $(boot_dir)/start.o			  \
 				 $(init_dir)/*.o 				  \
 			   	 $(drivers_dir)/gxconsole/console.o \
@@ -31,7 +31,7 @@ objects		  := $(boot_dir)/start.o			  \
 all: $(modules) vmlinux
 
 run: all
-	/OSLAB/gxemul -E testmips -C R3000 -M 64 -d gxemul/fs.img $(vmlinux_elf)
+	/OSLAB/gxemul -E testmips -C R3000 -M 64 -d 0:gxemul/fs.img -d 1:gxemul/fs1.img $(vmlinux_elf)
 
 vmlinux: $(modules)
 	$(LD) -o $(vmlinux_elf) -N -T $(link_script) $(objects)
