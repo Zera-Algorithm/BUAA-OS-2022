@@ -69,9 +69,11 @@ fs_test(void)
 	file_flush(f);
 	writef("file_flush is good\n");
 
+	
 	if ((r = file_set_size(f, 0)) < 0) {
 		user_panic("file_set_size: %e", r);
 	}
+user_panic("^^^^^^^^^^^^^^^");
 
 	user_assert(f->f_direct[0] == 0);
 	writef("file_truncate is good\n");

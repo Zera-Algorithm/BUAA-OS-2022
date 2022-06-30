@@ -9,12 +9,12 @@
 #include "fs.h"
 #include <mmu.h>
 
-struct BPB *bpb;
-int nblocks;
-struct DIREnt root;
+static struct BPB *bpb;
+static int nblocks;
+static struct DIREnt root;
 
-u_int *FATtable;
-u_int nFATtable;
+static u_int *FATtable;
+static u_int nFATtable;
 
 static void file_flush(struct DIREnt *);
 static int block_is_free(u_int);

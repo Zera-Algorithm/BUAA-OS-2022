@@ -3,6 +3,6 @@
 void umain()
 {
 	while (1) {
-		writef("IDLE!");
+		// writef("IDLE!");
 	}
 }

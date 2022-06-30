@@ -1,10 +1,14 @@
 INCLUDES = -I../include/ -I../user/
 
+FSIMGFILES := motd lfile fat32.h
+
 all: fsformat fs.o
 
 fsformat: fsformat.c fat32.h
 	gcc fsformat.c $(INCLUDES) -o fsformat
 	chmod +x fsformat
+	./fsformat ../gxemul/fs1.img $(FSIMGFILES)
+
 
 %.o: %.c
 	echo user1 cc $<

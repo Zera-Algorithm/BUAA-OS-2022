@@ -1,6 +1,7 @@
 INCLUDES = -I../include/ -I../user/
 
 user_dir := ../user
+FATfs_dir := ../FAT32_fs
 tools_dir := .
 fsformat  := ./fsformat
 
@@ -31,8 +32,8 @@ FSIMGFILES := motd newmotd testfile
 
 CFLAGS += -nostdlib -static
 
-all: serv.x serv.b
-# all: serv.x fs.img serv.b
+# all: serv.x serv.b
+all: serv.x fs.img serv.b
 
 %.x: %.b.c
 	echo cc1 $<
@@ -45,7 +46,7 @@ all: serv.x serv.b
 	$(tools_dir)/bintoc $* $< > $@~ && mv -f $@~ $@
 #	grep \. $@
 	
-%.b: ../user/entry.o ../user/syscall_wrap.o %.o $(USERLIB) $(FSLIB)
+%.b: ../user/entry.o ../user/syscall_wrap.o %.o $(USERLIB) $(FSLIB) $(FATLIB)
 	echo ld $@
 	$(LD) -o $@ $(LDFLAGS) -G 0 -static -n -nostdlib -T $(user_dir)/user.lds $^
 
