@@ -54,7 +54,7 @@ open(const char *path, int mode)
 	va = fd2data(fd);
 
 	// Step 4: Alloc memory, map the file content into memory.
-	size = ffd->f_file.f_size;
+	size = (ffd->fstype == 0) ? ffd->f_file.f_size : ffd->f_FATfile.DIR_FileSize;
 	for (i = 0; i < size; i += BY2PG) {
 		fsipc_map(ffd->f_fileid, i, va + i);
 		// each time map a single page for va.
@@ -76,7 +76,7 @@ file_close(struct Fd *fd)
 
 	ffd = (struct Filefd *)fd;
 	fileid = ffd->f_fileid;
-	size = ffd->f_file.f_size;
+	size = (ffd->fstype == 0) ? ffd->f_file.f_size : ffd->f_FATfile.DIR_FileSize;
 
 	// Set the start address storing the file's content.
 	va = fd2data(fd);
@@ -113,11 +113,11 @@ static int
 file_read(struct Fd *fd, void *buf, u_int n, u_int offset)
 {
 	u_int size;
-	struct Filefd *f;
-	f = (struct Filefd *)fd;
+	struct Filefd *ffd;
+	ffd = (struct Filefd *)fd;
 
 	// Avoid reading past the end of file.
-	size = f->f_file.f_size;
+	size = (ffd->fstype == 0) ? ffd->f_file.f_size : ffd->f_FATfile.DIR_FileSize;
 
 	if (offset > size) {
 		return 0;
@@ -170,11 +170,12 @@ read_map(int fdnum, u_int offset, void **blk)
 static int
 file_write(struct Fd *fd, const void *buf, u_int n, u_int offset)
 {
-	int r;
+	int r, size;
 	u_int tot;
-	struct Filefd *f;
+	struct Filefd *ffd;
 
-	f = (struct Filefd *)fd;
+	ffd = (struct Filefd *)fd;
+	size = (ffd->fstype == 0) ? ffd->f_file.f_size : ffd->f_FATfile.DIR_FileSize;
 
 	// Don't write more than the maximum file size.
 	tot = offset + n;
@@ -184,7 +185,7 @@ file_write(struct Fd *fd, const void *buf, u_int n, u_int offset)
 	}
 
 	// Increase the file's size if necessary
-	if (tot > f->f_file.f_size) {
+	if (tot > size) {
 		if ((r = ftruncate(fd2num(fd), tot)) < 0) {
 			return r;
 		}
@@ -202,9 +203,14 @@ file_stat(struct Fd *fd, struct Stat *st)
 
 	f = (struct Filefd *)fd;
 
-	strcpy(st->st_name, (char *)f->f_file.f_name);
-	st->st_size = f->f_file.f_size;
-	st->st_isdir = f->f_file.f_type == FTYPE_DIR;
+	strcpy(st->st_name, (char *)((f->fstype==0) ? f->f_file.f_name : f->f_FATfile.DIR_Name));
+	st->st_size = (f->fstype == 0) ? f->f_file.f_size : f->f_FATfile.DIR_FileSize;
+	if (f->fstype == 0) {
+		st->st_isdir = f->f_file.f_type == FTYPE_DIR;
+	}
+	else {
+		st->st_isdir = (f->f_FATfile.DIR_Attr & ATTR_DIRECTORY != 0);
+	}
 	return 0;
 }
 
@@ -233,8 +239,14 @@ ftruncate(int fdnum, u_int size)
 
 	f = (struct Filefd *)fd;
 	fileid = f->f_fileid;
-	oldsize = f->f_file.f_size;
-	f->f_file.f_size = size;
+
+	if (f->fstype == 0) {
+		oldsize = f->f_file.f_size;
+		f->f_file.f_size = size;
+	} else {
+		oldsize = f->f_FATfile.DIR_FileSize;
+		f->f_FATfile.DIR_FileSize = size;
+	}
 
 	/* Step1: Ask for more size. Mapped in fs_serv process. */
 	if ((r = fsipc_set_size(fileid, size)) < 0) {

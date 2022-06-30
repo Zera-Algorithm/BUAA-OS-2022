@@ -3,6 +3,7 @@
 
 #include <types.h>
 #include <fs.h>
+#include "../FAT32_fs/fat32.h"
 
 #define debug 0
 
@@ -48,6 +49,8 @@ struct Stat {
 	u_int st_isdir;
 	struct Dev *st_dev;
 };
+
+struct DIREnt;
 
 // file descriptor + file
 struct Filefd {

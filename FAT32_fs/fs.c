@@ -16,8 +16,11 @@ struct DIREnt root;
 u_int *FATtable;
 u_int nFATtable;
 
-void file_flush(struct DIREnt *);
-int block_is_free(u_int);
+static void file_flush(struct DIREnt *);
+static int block_is_free(u_int);
+static int read_block(u_int blockno, void **blk, u_int *isnew);
+static void write_block(u_int blockno);
+
 
 // ------------- 以下几个函数涉及块缓存的映射 -----------
 
@@ -107,7 +110,6 @@ map_block(u_int blockno)
 static void
 unmap_block(u_int blockno)
 {
-	int r;
 	u_long pa;
 
 	// Step 1: check if this block is mapped.
@@ -331,7 +333,7 @@ load_FATfs() {
 	int r, i;
 
 	// 加载第0块
-	if ((r = read_block(0, blk, 0)) < 0) {
+	if ((r = read_block(0, &blk, 0)) < 0) {
 		user_panic("Can't read FAT's BPB Block!");
 	}
 
@@ -344,7 +346,7 @@ load_FATfs() {
 	}
 
 	// 2. 魔数为0x55, 0xAA
-	if (bpb->Signature_word[0] != 0x55 || bpb->Signature_word[1] != 0xAA) {
+	if (bpb->Signature_word[0] != (char)0x55 || bpb->Signature_word[1] != (char)0xAA) {
 		user_panic("FAT Error: not a valid FS!");
 	}
 
@@ -404,11 +406,6 @@ static int getFileBlocks(u_int size) {
 	}
 }
 
-static void setFATent(int blockno, u_int value) {
-	user_assert(BLK2CLUS(blockno) >= 2);
-	FATtable[BLK2CLUS(blockno)-2] = value;
-}
-
 // Overview:
 //	Like pgdir_walk but for files.
 //	Find the disk block number slot for the 'filebno'th block in file 'f'. Then, set
@@ -428,10 +425,9 @@ static void setFATent(int blockno, u_int value) {
 static int
 file_map_block(struct DIREnt *file, u_int filebno, u_int *pdiskbno, u_int alloc)
 {
-	int r;
+	int i;
 	u_int clus;
 	int nfileblk = getFileBlocks(file->DIR_FileSize);
-	void *blk;
 
 	// 查询文件的指定块块号，若alloc为1，则分配不存在的块
 	if (filebno >= nfileblk) {
@@ -442,12 +438,12 @@ file_map_block(struct DIREnt *file, u_int filebno, u_int *pdiskbno, u_int alloc)
 
 		// 1. 定位到最后一块
 		clus = file->DIR_FstClusHI * 65536 + file->DIR_DstClusLO;
-		for (int i = 0; i < nfileblk-1; i++) {
+		for (i = 0; i < nfileblk-1; i++) {
 			clus = FATtable[clus-2];
 		}
 
 		// 2. 继续分配块
-		for (int i = 0; i < (filebno-nfileblk+1); i++) {
+		for (i = 0; i < (filebno-nfileblk+1); i++) {
 			int r = alloc_block();
 			if (r < 0) return r;
 			
@@ -467,7 +463,7 @@ file_map_block(struct DIREnt *file, u_int filebno, u_int *pdiskbno, u_int alloc)
 	}
 	else {
 		clus = file->DIR_FstClusHI * 65536 + file->DIR_DstClusLO;
-		for (int i = 0; i < filebno; i++) {
+		for (i = 0; i < filebno; i++) {
 			// 一共进行filebno次迭代才能找到第filebno个块:filebno从0开始
 			clus = FATtable[clus-2];
 		}
@@ -483,7 +479,7 @@ file_map_block(struct DIREnt *file, u_int filebno, u_int *pdiskbno, u_int alloc)
 static int
 file_clear_block(struct DIREnt *file, u_int filebno)
 {
-	int r;
+	int i;
 
 	int nfileblk = getFileBlocks(file->DIR_FileSize);
 	if (filebno >= nfileblk) // 对应的块不存在
@@ -493,7 +489,7 @@ file_clear_block(struct DIREnt *file, u_int filebno)
 	// 1.移动到第filebno块
 	int clus = file->DIR_FstClusHI * 65536 + file->DIR_DstClusLO;
 	int preClus = 0;
-	for (int i = 0; i < filebno; i++) {
+	for (i = 0; i < filebno; i++) {
 		// 一共进行filebno次迭代才能找到第filebno个块:filebno从0开始
 		preClus = clus;
 		clus = FATtable[clus-2];
@@ -576,7 +572,7 @@ static int
 dir_lookup(struct DIREnt *dir, char *name, struct DIREnt **file)
 {
 	int r;
-	u_int i, j, nblock;
+	u_int i, j;
 	void *blk;
 	struct DIREnt *f;
 	
@@ -585,7 +581,7 @@ dir_lookup(struct DIREnt *dir, char *name, struct DIREnt **file)
 	for (i = clus; i != CLUS_FILEEND; i = FATtable[i-2]) {
 		// Step 2: Read the i'th block of the dir.
 		// Hint: Use file_get_block.
-		r = read_block(CLUS2BLK(i), blk, 0);
+		r = read_block(CLUS2BLK(i), &blk, 0);
 		if (r < 0) return r;
 
 		// Step 3: Find target file by file name in all files on this block.
@@ -615,7 +611,7 @@ static int
 dir_alloc_file(struct DIREnt *dir, struct DIREnt **file)
 {
 	int r;
-	u_int nblock, i, j, lastClus;
+	u_int i, j, lastClus = 0;
 	void *blk;
 	struct DIREnt *f;
 
@@ -650,8 +646,8 @@ dir_alloc_file(struct DIREnt *dir, struct DIREnt **file)
 	FATtable[BLK2CLUS(r)-2] = CLUS_FILEEND;
 
 	// 从新分配的块中提取第一项作为返回值
-	int isnew;
-	r = read_block(r, blk, &isnew);
+	u_int isnew;
+	r = read_block(r, &blk, &isnew);
 	if (r < 0) return r;
 	f = blk;
 	*file = f;
@@ -715,7 +711,7 @@ walk_path(char *path, struct DIREnt **pdir, struct DIREnt **pfile, char *lastele
 		name[path - p] = '\0';
 		path = skip_slash(path);
 
-		if (dir->DIR_Attr & ATTR_ARCHIVE == 0) {
+		if ((dir->DIR_Attr & ATTR_ARCHIVE) == 0) {
 			return -E_NOT_FOUND;
 		}
 

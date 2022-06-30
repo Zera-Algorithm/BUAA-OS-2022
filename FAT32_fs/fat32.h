@@ -1,10 +1,14 @@
-// 定义类型
+#ifndef _FAT32_H_
+#define _FAT32_H_
+
+/* // 定义类型
 typedef unsigned char            u_int8_t;
 typedef short                     int16_t;
 typedef unsigned short          u_int16_t;
 typedef int                       int32_t;
 typedef unsigned int            u_int32_t;
 typedef unsigned                     uint;
+*/
 
 #pragma pack(1)
 // 取消C编译器对结构体的自动对齐，保持结构体的偏移和占用空间
@@ -74,7 +78,10 @@ struct FSInfo {
 // BPB部分占用1块
 #define NDATABLOCK  (NBLOCK-NFATBLOCK-NBPBBLOCK)
 
+#ifndef BY2BLK
 #define BY2BLK      4096
+#endif
+
 #define BY2CLUS     BY2BLK
 #define ROOTCLUS    2
 
@@ -117,8 +124,6 @@ typedef struct LongNameEnt {
 #define ATTR_DIRECTORY  0x10
 #define ATTR_ARCHIVE    0x20
 #define ATTR_LONG_NAME_MASK (ATTR_READ_ONLY | ATTR_HIDDEN | ATTR_SYSTEM | ATTR_VOLUME_ID | ATTR_DIRECTORY | ATTR_ARCHIVE)
-
-#define MAXNAMELEN      1024
 #define CHAR2LONGENT    26
 
 enum CLUS_TYPE {
@@ -126,3 +131,6 @@ enum CLUS_TYPE {
     CLUS_BAD     = 0x0ffffff7,
     CLUS_FILEEND = 0xffffffff,
 };
+
+
+#endif

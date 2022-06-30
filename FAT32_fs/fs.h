@@ -1,5 +1,4 @@
 #include "lib.h"
-#include <fs.h>
 #include <mmu.h>
 #include "fat32.h"
 
@@ -16,3 +15,4 @@
 /* ide.c */
 void ide_read(u_int diskno, u_int secno, void *dst, u_int nsecs);
 void ide_write(u_int diskno, u_int secno, void *src, u_int nsecs);
+

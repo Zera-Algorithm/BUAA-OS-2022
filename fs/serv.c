@@ -9,6 +9,7 @@
 #include "fd.h"
 #include "lib.h"
 #include <mmu.h>
+#include <FAT.h>
 
 struct Open {
 	struct File *o_file;	// mapped descriptor for open file
@@ -92,10 +93,21 @@ open_lookup(u_int envid, u_int fileid, struct Open **po)
 	return 0;
 }
 
+static int
+strncmp(char *a, char *b, int n) {
+	int i;
+	for (i = 0; i < n; i++) {
+		if (a[i] < b[i]) return -1;
+		else if (a[i] > b[i]) return 1;
+	}
+	return 0;
+}
+
 // Serve requests, sending responses back to envid.
 // To send a result back, ipc_send(envid, r, 0, 0).
 // To include a page, ipc_send(envid, r, srcva, perm).
 // 此处按照路径转接到对应的文件系统
+// root0表示自带的文件系统，root1表示FAT文件系统
 void
 serve_open(u_int envid, struct Fsreq_open *rq)
 {
@@ -112,7 +124,12 @@ serve_open(u_int envid, struct Fsreq_open *rq)
 	user_bcopy(rq->req_path, path, MAXPATHLEN);
 	path[MAXPATHLEN - 1] = 0;
 
-	// Find a file id.
+	if (strncmp(path, "/root0", 6) != 0 && strncmp(path, "/root1", 6) != 0) {
+		// 不符合规则的文件名
+		ipc_send(envid, -E_INVAL, 0, 0);
+	}
+
+	// 1. Find a file id.
 	if ((r = open_alloc(&o)) < 0) {
 		user_panic("open_alloc failed: %d, invalid path: %s", r, path);
 		ipc_send(envid, r, 0, 0);
@@ -120,17 +137,43 @@ serve_open(u_int envid, struct Fsreq_open *rq)
 
 	fileid = r;
 
-	// Open the file.
-	if ((r = file_open((char *)path, &f)) < 0) {
-	//	user_panic("file_open failed: %d, invalid path: %s", r, path);
-		ipc_send(envid, r, 0, 0);
-		return ;
+	if (strncmp(path, "/root0", 6) == 0) {
+		// 自带文件系统
+		// 2. Open the file.
+		if ((r = file_open((char *)(path+7), &f)) < 0) { // 跳过前缀
+		//	user_panic("file_open failed: %d, invalid path: %s", r, path);
+			ipc_send(envid, r, 0, 0);
+			return ;
+		}
+
+		// 3. Save the file pointer.
+		o->o_file = f;
+		o->fstype = 0; // 设定文件系统类型
+
+		
+	}
+	else if (strncmp(path, "/root1", 6) == 0) {
+		struct DIREnt *dirent;
+		// FAT32文件系统
+		if ((r = open_alloc(&o)) < 0) {
+			user_panic("open_alloc failed: %d, invalid path: %s", r, path);
+			ipc_send(envid, r, 0, 0);
+		}
+
+		fileid = r;
+
+		if ((r = FAT_file_open((char *)(path+7), &dirent)) < 0) {
+		//	user_panic("file_open failed: %d, invalid path: %s", r, path);
+			ipc_send(envid, r, 0, 0);
+			return;
+		}
+
+		// Save the file pointer.
+		o->o_FATfile = dirent;
+		o->fstype = 1; // 设定文件系统类型
 	}
 
-	// Save the file pointer.
-	o->o_file = f;
-
-	// Fill out the Filefd structure
+	// 4. Fill out the Filefd structure
 	ff = (struct Filefd *)o->o_ff;
 	ff->f_file = *f;
 	ff->f_fileid = o->o_fileid;
@@ -160,7 +203,15 @@ serve_map(u_int envid, struct Fsreq_map *rq)
 
 	filebno = rq->req_offset / BY2BLK;
 
-	if ((r = file_get_block(pOpen->o_file, filebno, &blk)) < 0) {
+	// 根据文件系统的类型决定调用的函数
+	if (pOpen->fstype == 0)
+		r = file_get_block(pOpen->o_file, filebno, &blk);
+	else if (pOpen->fstype == 1)
+		r = FAT_file_get_block(pOpen->o_FATfile, filebno, &blk);
+	else
+		r = -E_NO_DISK;
+
+	if (r < 0) {
 		ipc_send(envid, r, 0, 0);
 		return;
 	}
@@ -178,7 +229,14 @@ serve_set_size(u_int envid, struct Fsreq_set_size *rq)
 		return;
 	}
 
-	if ((r = file_set_size(pOpen->o_file, rq->req_size)) < 0) {
+	if (pOpen->fstype == 0)
+		r = file_set_size(pOpen->o_file, rq->req_size);
+	else if (pOpen->fstype == 1)
+		r = FAT_file_set_size(pOpen->o_FATfile, rq->req_size);
+	else
+		r = -E_NO_DISK;
+
+	if (r < 0) {
 		ipc_send(envid, r, 0, 0);
 		return;
 	}
@@ -198,7 +256,12 @@ serve_close(u_int envid, struct Fsreq_close *rq)
 		return;
 	}
 
-	file_close(pOpen->o_file);
+	if (pOpen->fstype == 0)
+		file_close(pOpen->o_file);
+	else if (pOpen->fstype == 1) {
+		FAT_file_close(pOpen->o_FATfile);
+	}
+
 	ipc_send(envid, 0, 0, 0);
 }
 
@@ -216,9 +279,17 @@ serve_remove(u_int envid, struct Fsreq_remove *rq)
 	rq->req_path[MAXPATHLEN - 1] = '\0';
 	strcpy(path, rq->req_path);
 
-	// Step 2: Remove file from file system and response to user-level process.
-	// Call file_remove and ipc_send an approprite value to corresponding env.
-	r = file_remove(path);
+	if (strncmp(path, "/root0", 6) == 0) {
+		// Step 2: Remove file from file system and response to user-level process.
+		// Call file_remove and ipc_send an approprite value to corresponding env.
+		r = file_remove(path+7);
+	}
+	else if (strncmp(path, "/root1", 6) == 0) {
+		r = FAT_file_remove(path+7);
+	}
+	else {
+		r = -E_INVAL;
+	}
 	ipc_send(envid, r, 0, 0);
 }
 
@@ -235,7 +306,15 @@ serve_dirty(u_int envid, struct Fsreq_dirty *rq)
 		return;
 	}
 
-	if ((r = file_dirty(pOpen->o_file, rq->req_offset)) < 0) {
+	// 根据文件系统的类型决定调用的函数
+	if (pOpen->fstype == 0)
+		r = file_dirty(pOpen->o_file, rq->req_offset);
+	else if (pOpen->fstype == 1)
+		r = FAT_file_dirty(pOpen->o_FATfile, rq->req_offset);
+	else
+		r = -E_NO_DISK;
+
+	if (r < 0) {
 		ipc_send(envid, r, 0, 0);
 		return;
 	}
@@ -243,10 +322,12 @@ serve_dirty(u_int envid, struct Fsreq_dirty *rq)
 	ipc_send(envid, 0, 0, 0);
 }
 
+// 两个文件系统同时同步
 void
 serve_sync(u_int envid)
 {
 	fs_sync();
+	FAT_fs_sync();
 	ipc_send(envid, 0, 0, 0);
 }
 
@@ -311,12 +392,16 @@ umain(void)
 	user_assert(sizeof(struct File) == BY2FILE);
 
 	writef("FS is running\n");
-
 	writef("FS can do I/O\n");
 
 	serve_init();
+
+	// 内置FS的初始化
 	fs_init();
 	fs_test();
+
+	// FAT FS Initialization
+	FAT_fs_init();
 
 	serve();
 }

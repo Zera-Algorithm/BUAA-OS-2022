@@ -6,6 +6,8 @@
 #include <dirent.h>
 #include "fat32.h"
 
+#define MAXNAMELEN 1024
+
 // 区分块的类型
 enum BLOCK_TYPE {
     BLOCK_FREE  = 0,
