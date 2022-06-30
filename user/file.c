@@ -56,8 +56,9 @@ open(const char *path, int mode)
 	// Step 4: Alloc memory, map the file content into memory.
 	size = ffd->f_file.f_size;
 	for (i = 0; i < size; i += BY2PG) {
-		fsipc_map(ffd->f_fileid, i, va + i);
+		r = fsipc_map(ffd->f_fileid, i, va + i);
 		// each time map a single page for va.
+		if (r < 0) return r;
 	}
 
 	// Step 5: Return the number of file descriptor.

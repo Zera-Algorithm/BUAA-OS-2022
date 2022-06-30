@@ -223,6 +223,7 @@ read(int fdnum, void *buf, u_int n)
 		fd->fd_offset += r;
 	}
 
+	((char *)buf)[r] = '\0';
 	return r;
 }
 
