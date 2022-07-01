@@ -2,59 +2,34 @@
 
 char buf[60];
 
-// 输入字符，以回车为结束
-// 同时负责回显字符
-void scanf(char *buffer) {
-    int i = 0;
-    while (1) {
-        char c = syscall_cgetc();
-        if (c == '\r') {
-            // 表示回车
-            buffer[i] = '\0';
-            writef("\n", c); // 输出'\r'是回到行的起始位置重新开始写
-            return;
-        }
-        else if (c == 127) { // 退格键
-            // 如果输入的内容全部删除完毕之后就不能继续删除了
-            if (i != 0) {
-                i -= 1;
-                writef("%c %c", 8, 8); // 向后退一格
-            }
-        }
-        else {
-            buffer[i++] = c;
-            writef("%c", c);
-        }
-    }
-}
-
-void lsdir(char *str) {
-    int fd, r;
+int lsdir(char *str) {
+    int fd, r, pos;
     struct Stat state;
     r = stat(str, &state);
     DIREnt dirent;
     if (r < 0) {
-        writef("stat error: %d\n", r);
+        return r;
     }
     else if (!state.st_isdir) {
-        writef("%s ", state.st_name);
-        writef("is not a directory!\n");
+        return -E_INVAL;
     }
     else {
-        writef("Before open: dir's size = %d\n", state.st_size);
         fd = open(str, O_RDONLY);
-        writef("End open.\n");
-        
+
+        buf[0] = 0;
+        pos = 0;
         while(1) {
             r = readn(fd, &dirent, sizeof(DIREnt));
             if (r == 0) {
-                writef("\n");
+                buf[pos] = 0;
                 close(fd);
                 return;
             }
             else {
                 if (dirent.DIR_Name[0]) {
-                    writef("%s ", dirent.DIR_Name);
+                    strcpy(buf + pos, dirent.DIR_Name);
+                    pos += strlen(dirent.DIR_Name);
+                    buf[pos++] = ' ';
                 }
             }
         }
@@ -69,10 +44,41 @@ void umain() {
         syscall_yield();
     }
 
-    lsdir("/root1/");
-    // while(1) {
-    //     writef("ls: ");
-    //     scanf(buf);
-    //     lsdir(buf);
-    // }
+// ----------------root-----------------
+    user_assert(lsdir("/root0") >= 0);
+    writef(buf);
+    user_assert(strcmp(buf, "motd newmotd testfile ") == 0);
+
+    user_assert(lsdir("/root0/") >= 0);
+    user_assert(strcmp(buf, "motd newmotd testfile ") == 0);
+
+    user_assert(lsdir("/root1") >= 0);
+    user_assert(strcmp(buf, "test ") == 0);
+
+    user_assert(lsdir("/root1/") >= 0);
+    user_assert(strcmp(buf, "test ") == 0);
+
+// -------------------- . / .. ----------------
+    user_assert(lsdir("/root0/.") < 0);
+    user_assert(lsdir("/root1/not-found") < 0);
+    user_assert(lsdir("/root1/./.") < 0);
+
+    user_assert(lsdir("/root1/test/././.") >= 0);
+    writef(buf);
+    user_assert(strcmp(buf, ". .. lib home etc bin src ") == 0);
+    
+    user_assert(lsdir("/root1/test/../test") >= 0);
+    user_assert(strcmp(buf, ". .. lib home etc bin src ") == 0);
+
+    user_assert(lsdir("/root1/test/bin/main/../../bin/main/./././../main") >= 0);
+    user_assert(strcmp(buf, ". .. file2.txt file1.txt ") == 0);
+
+    user_assert(lsdir("/root1/test/bin/././././main/..") >= 0); writef(buf);
+    user_assert(strcmp(buf, ". .. main test hello.c dev ") == 0);
+
+    user_assert(lsdir("/root1/test/etc") >= 0); writef(buf);
+    struct Stat state;
+    stat("/root1/test/etc/A", &state);
+    writef("size = %d, is_dir = %d, name = %s.\n", state.st_size, state.st_isdir, state.st_name);
+    user_assert(strcmp(buf, ". .. config.json ") == 0);
 }

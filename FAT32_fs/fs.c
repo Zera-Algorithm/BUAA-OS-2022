@@ -783,7 +783,7 @@ FAT_file_open(char *path, struct DIREnt **file)
 	int r = walk_path(path, 0, file, 0);
 	if (r < 0) return r;
 	else {
-		if(__debug) writef("open path succeed!\n");
+		// writef("open path succeed!\n");
 		return countBlocks(*file);
 	}
 }
