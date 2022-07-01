@@ -409,22 +409,6 @@ static int getFileBlocks(u_int size) {
 	}
 }
 
-static int
-countBlocks(struct DIREnt *file) {
-	int clus = file->DIR_FstClusHI * 65536 + file->DIR_DstClusLO;
-	int i = 0;
-	if (clus == 0) return 0;
-	// 如果文件不包含任何块，则直接返回0即可。
-	else {
-		while (clus != CLUS_FILEEND) {
-			// if(__debug) writef("rolling! %d\n", clus);
-			clus = FATtable[clus - 2];
-			i += 1;
-		}
-		return i;
-	}
-}
-
 // Overview:
 //	Like pgdir_walk but for files.
 //	Find the disk block number slot for the 'filebno'th block in file 'f'. Then, set
@@ -439,19 +423,17 @@ countBlocks(struct DIREnt *file) {
 //		-E_NO_DISK if there's no space on the disk for an indirect block.
 //		-E_NO_MEM if there's no space in memory for an indirect block.
 //		-E_INVAL if filebno is out of range (it's >= NINDIRECT).
-// alloc为1时，表示: 为大于等于文件块数的块分配空间
+// alloc为1时，表示为大于等于文件块数的块分配空间
 // 检索文件的第pdiskbno个块，并将其块号保存到*pdiskbno中
 static int
-file_map_block(struct DIREnt *file, int filebno, u_int *pdiskbno, u_int alloc)
+file_map_block(struct DIREnt *file, u_int filebno, u_int *pdiskbno, u_int alloc)
 {
 	int i;
 	u_int clus;
-	int nfileblk = countBlocks(file); // 此计算块数的方法同时适用于文件和目录
-	// writef("filebno = %d[map_block].\n", filebno);
+	int nfileblk = getFileBlocks(file->DIR_FileSize);
 
 	// 查询文件的指定块块号，若alloc为1，则分配不存在的块
 	if (filebno >= nfileblk) {
-		// writef("[warning] alloc new file block! filebno = %d, nfileblk = %d\n", filebno, nfileblk);
 		// 块不存在，需要进行分配
 		if (filebno >= MAXFILESIZE / BY2BLK) { // 文件太大
 			return -E_INVAL;
@@ -502,7 +484,7 @@ file_clear_block(struct DIREnt *file, u_int filebno)
 {
 	int i;
 
-	int nfileblk = countBlocks(file);
+	int nfileblk = getFileBlocks(file->DIR_FileSize);
 	if (filebno >= nfileblk) // 对应的块不存在
 		return 0;
 
@@ -551,7 +533,6 @@ FAT_file_get_block(struct DIREnt *f, u_int filebno, void **blk)
 	u_int diskbno;
 	u_int isnew;
 
-	// writef("filebno = %d[get_block]\n", filebno);
 	// Step 1: find the disk block number is `f` using `file_map_block`.
 	if ((r = file_map_block(f, filebno, &diskbno, 1)) < 0) {
 		return r;
@@ -774,18 +755,13 @@ walk_path(char *path, struct DIREnt **pdir, struct DIREnt **pfile, char *lastele
 //	Open "path".
 //
 // Post-Condition:
-//	On success set *pfile to point at the file and return (返回文件或目录所占用的磁盘块数).
+//	On success set *pfile to point at the file and return 0.
 //	On error return < 0.
 int
 FAT_file_open(char *path, struct DIREnt **file)
 {	
-	if(__debug) writef("prepare to open path: %s\n", path);
-	int r = walk_path(path, 0, file, 0);
-	if (r < 0) return r;
-	else {
-		if(__debug) writef("open path succeed!\n");
-		return countBlocks(*file);
-	}
+	writef("prepare to open path: %s\n", path);
+	return walk_path(path, 0, file, 0);
 }
 
 // Overview:
@@ -834,7 +810,7 @@ file_truncate(struct DIREnt *f, u_int newsize)
 {
 	u_int bno, old_nblocks, new_nblocks;
 
-	old_nblocks = countBlocks(f);
+	old_nblocks = getFileBlocks(f->DIR_FileSize);
 	new_nblocks = getFileBlocks(newsize);
 
 	// 相比于索引式，流程大大简化
@@ -878,7 +854,7 @@ file_flush(struct DIREnt *f)
 	u_int diskno;
 	int r;
 
-	nblocks = countBlocks(f);
+	nblocks = f->DIR_FileSize / BY2BLK + 1;
 
 	for (bno = 0; bno < nblocks; bno++) {
 		if ((r = file_map_block(f, bno, &diskno, 0)) < 0) {

@@ -169,9 +169,8 @@ serve_open(u_int envid, struct Fsreq_open *rq)
 	}
 	else if (strncmp(path, "/root1", 6) == 0) {
 		// FAT32文件系统
-
 		if ((r = FAT_file_open((char *)(path+6), &dirent)) < 0) {
-		
+
 			if ((rq->req_omode & O_CREAT) != 0) {
 				r = FAT_file_create((char *)(path+6), &dirent);
 				if (r < 0) {
@@ -184,6 +183,11 @@ serve_open(u_int envid, struct Fsreq_open *rq)
 				return;
 			}
 
+		}
+
+		if (dirent->DIR_Attr & ATTR_DIRECTORY) {
+			// 是目录，则需要重新赋值一下目录的大小
+			dirent->DIR_FileSize = r * BY2BLK;
 		}
 
 		// Save the file pointer.

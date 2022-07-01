@@ -64,6 +64,7 @@ open(const char *path, int mode)
 		fsipc_map(ffd->f_fileid, i, va + i);
 		// each time map a single page for va.
 	}
+	// writef("Finish Map!\n");
 
 	// Step 5: Return the number of file descriptor.
 	return fd2num(fd);
@@ -210,11 +211,12 @@ file_stat(struct Fd *fd, struct Stat *st)
 
 	strcpy(st->st_name, (char *)((f->fstype==0) ? f->f_file.f_name : f->f_FATfile.DIR_Name));
 	st->st_size = (f->fstype == 0) ? f->f_file.f_size : f->f_FATfile.DIR_FileSize;
+	
 	if (f->fstype == 0) {
-		st->st_isdir = f->f_file.f_type == FTYPE_DIR;
+		st->st_isdir = (f->f_file.f_type == FTYPE_DIR);
 	}
 	else {
-		st->st_isdir = (f->f_FATfile.DIR_Attr & ATTR_DIRECTORY != 0);
+		st->st_isdir = ((f->f_FATfile.DIR_Attr & ATTR_DIRECTORY) != 0);
 	}
 	return 0;
 }

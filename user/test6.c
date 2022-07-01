@@ -9,5 +9,6 @@ void umain() {
     write(fd, longmsg, sizeof(longmsg));
     seek(fd, 0); // 回归到文件开始位置
     readn(fd, buf, 200);
-    user_assert(strcmp(longmsg, buf));
+    user_assert(strcmp(longmsg, buf) == 0);
+    writef("write test passed!");
 }

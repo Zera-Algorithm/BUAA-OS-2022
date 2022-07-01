@@ -4,10 +4,15 @@ FSIMGFILES := motd lfile fat32.h
 
 all: fs1.img fs.o
 
+# fs1.img: fsformat.c fat32.h
+# 	gcc fsformat.c $(INCLUDES) -o fsformat
+# 	chmod +x fsformat
+# 	./fsformat ../gxemul/fs1.img $(FSIMGFILES)
+
 fs1.img: fsformat.c fat32.h
 	gcc fsformat.c $(INCLUDES) -o fsformat
 	chmod +x fsformat
-	./fsformat ../gxemul/fs1.img $(FSIMGFILES)
+	./fsformat ../gxemul/fs1.img -r test
 
 %.o: %.c
 	echo user1 cc $<

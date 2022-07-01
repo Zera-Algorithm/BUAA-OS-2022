@@ -27,7 +27,6 @@ struct Block blocks[NBLOCK];
 int next_cluster = ROOTCLUS;
 DIREnt *rootDirEnt;
 struct FSInfo *fsinfo;
-char buf[1025];
 int isReverse = 1;
 
 // 获取一个新的簇号（同时将最新的簇号加一，使得next_cluster是当前最小的没被使用过的簇）
@@ -182,7 +181,7 @@ DIREnt *create_file(int DIRclus, char *name) {
             n_longEnt = ((len + 1) - 11) / CHAR2LONGENT + 1;
     }
 
-    printf("file %s, n_longEnt = %d.\n", name, n_longEnt);
+    // printf("file %s, n_longEnt = %d.\n", name, n_longEnt);
     // 复制文件名到longEnt
     for (i = n_longEnt; i >= 1; i--) {
         LongNameEnt *longEnt = (LongNameEnt *)findEmptyEnt(DIRclus);
@@ -254,6 +253,7 @@ void write_file(DIREnt *lastDir, const char *path) {
 void write_directory(DIREnt *lastDir, const char *path) {
     int DIRclus = (lastDir->DIR_FstClusHI << 16) + lastDir->DIR_DstClusLO;
     int r, n_clus, firstClus;
+    char *buf; // 存放目录名的结构体
 
     // Get file name with no path prefix.
     // 找到path中最右面的/所在的字符指针位置，若无，返回null。
@@ -276,7 +276,7 @@ void write_directory(DIREnt *lastDir, const char *path) {
     *getpFATEnt(firstClus) = CLUS_FILEEND;
     
     struct dirent *file;
-    DIR *dp;
+    DIR *dp = opendir(path); // 打开实际文件系统的目录
     DIREnt *myEnts = (DIREnt *)blocks[CLUS2BLK(firstClus)].data;
 
     // 首先为目录添加.和..两项
@@ -290,6 +290,9 @@ void write_directory(DIREnt *lastDir, const char *path) {
     // 扫描目录
     while (file = readdir(dp))
     {
+        buf = (char *)malloc(strlen(path) + strlen(file->d_name) + 2);
+        // 申请空间存放路径
+
         sprintf(buf, "%s/%s", path, file->d_name); // 生成内部目录项的路径
         if (strcmp(file->d_name, ".") == 0 || strcmp(file->d_name, "..") == 0) {
             continue;
@@ -304,6 +307,9 @@ void write_directory(DIREnt *lastDir, const char *path) {
             printf("Detected: file: %s\n", file->d_name);
 			write_file(dirEnt, buf);
         }
+
+        // 释放路径的空间
+        free(buf);
     }
     
 }
@@ -404,7 +410,7 @@ void reverse_block(struct Block *block) {
 }
 
 void finish_fs(char *path) {
-    int fd;
+    int fd, used_block;
 
     // 更新FSInfo
     fsinfo->FSI_Nxt_Free = next_cluster;
@@ -417,6 +423,9 @@ void finish_fs(char *path) {
         write(fd, blocks[i].data, BY2BLK);
     }
 
+    used_block = 1 + NFATBLOCK + (next_cluster - 2);
+    printf("\nFinish Writing!\n");
+    printf("# Used_block: %d BLK\n", used_block);
     close(fd);
 }
 
@@ -444,6 +453,7 @@ int main(int argc, char **argv) {
         if (argpos+3 > argc)
             goto showHelp; // 参数不足，-r后面没有目录项
         for (i = argpos+2; i < argc; ++i) {
+            printf("Write directory: %s\n", argv[i]);
             write_directory(rootDirEnt, argv[i]);
         }
     }
