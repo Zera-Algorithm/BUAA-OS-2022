@@ -28,8 +28,8 @@ all: devtst.x devtst.b tltest.x tltest.b \
 	fstestread.x fstestread.b fstestwrite.x fstestwrite.b \
 	fktest.x fktest.b pingpong.x pingpong.b idle.x fstest.x fstest.b $(USERLIB) entry.o syscall_wrap.o \
 	test1.x test1.b test2.x test2.b test3.x test3.b \
-	# test4.x test4.b test5.x test5.b \
-	# test6.x test6.b test7.x test7.b test8.x test8.b test9.x test9.b test10.x test10.b
+	test4.x test4.b test5.x test5.b test6.x test6.b
+# test7.x test7.b test8.x test8.b test9.x test9.b test10.x test10.b
 
 %.x: %.b.c
 	echo cc1 $<

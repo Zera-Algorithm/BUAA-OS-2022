@@ -106,8 +106,9 @@ strncmp(char *a, char *b, int n) {
 // Serve requests, sending responses back to envid.
 // To send a result back, ipc_send(envid, r, 0, 0).
 // To include a page, ipc_send(envid, r, srcva, perm).
-// 此处按照路径转接到对应的文件系统
-// root0表示自带的文件系统，root1表示FAT文件系统
+// 此处按照路径转接到对应的文件系统：root0表示自带的文件系统，root1表示FAT文件系统
+// 添加文件创建选项O_CREAT，支持文件不存在时自动创建文件
+// 需要注意的是，出现错误时并不返回错误代码r，而是以IPC方式发送错误码，并return
 void
 serve_open(u_int envid, struct Fsreq_open *rq)
 {
@@ -142,13 +143,24 @@ serve_open(u_int envid, struct Fsreq_open *rq)
 	fileid = r;
 
 	if (strncmp(path, "/root0", 6) == 0) {
-		// writef("route to root0\n");
 		// 自带文件系统
 		// 2. Open the file.
+
 		if ((r = file_open((char *)(path+6), &f)) < 0) { // 跳过前缀
-		//	user_panic("file_open failed: %d, invalid path: %s", r, path);
-			ipc_send(envid, r, 0, 0);
-			return ;
+
+			// 2.5 未找到文件，如果有文件创建选项，就创建一个
+			if ((rq->req_omode & O_CREAT) != 0) {
+				r = file_create((char *)(path+6), &f);
+				if (r < 0) {
+					ipc_send(envid, r, 0, 0);
+					return;
+				}
+			}
+			else {
+				ipc_send(envid, r, 0, 0);
+				return;
+			}
+
 		}
 
 		// 3. Save the file pointer.
@@ -157,18 +169,21 @@ serve_open(u_int envid, struct Fsreq_open *rq)
 	}
 	else if (strncmp(path, "/root1", 6) == 0) {
 		// FAT32文件系统
-		if ((r = open_alloc(&o)) < 0) {
-			user_panic("open_alloc failed: %d, invalid path: %s", r, path);
-			ipc_send(envid, r, 0, 0);
-			return;
-		}
-
-		fileid = r;
 
 		if ((r = FAT_file_open((char *)(path+6), &dirent)) < 0) {
-		//	user_panic("file_open failed: %d, invalid path: %s", r, path);
-			ipc_send(envid, r, 0, 0);
-			return;
+		
+			if ((rq->req_omode & O_CREAT) != 0) {
+				r = FAT_file_create((char *)(path+6), &dirent);
+				if (r < 0) {
+					ipc_send(envid, r, 0, 0);
+					return;
+				}
+			}
+			else {
+				ipc_send(envid, r, 0, 0);
+				return;
+			}
+
 		}
 
 		// Save the file pointer.

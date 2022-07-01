@@ -411,7 +411,8 @@ void finish_fs(char *path) {
     fsinfo->FSI_Free_Count = NDATABLOCK - (next_cluster - 2);
 
     fd = open(path, O_RDWR | O_CREAT, 0666);
-    for (int i = 0; i < NBLOCK; i++) {
+    int numWrite = 200;
+    for (int i = 0; i < numWrite; i++) { // 应当写入NBLOCK块，但为了节省时间和减少磁盘写入，写入200块即可
         if(isReverse) reverse_block(blocks+i);
         write(fd, blocks[i].data, BY2BLK);
     }

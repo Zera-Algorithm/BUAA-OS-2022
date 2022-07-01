@@ -12,6 +12,7 @@
 static struct BPB *bpb;
 static int nblocks;
 static struct DIREnt root;
+static int __debug = 0;
 
 static u_int *FATtable;
 static u_int nFATtable;
@@ -593,7 +594,7 @@ dir_lookup(struct DIREnt *dir, char *name, struct DIREnt **file)
 			if (f->DIR_Attr == ATTR_LONG_NAME_MASK) continue;
 			// 跳过长文件名项
 
-			writef("Find file: %s\n", f->DIR_Name);
+			// writef("Find file: %s\n", f->DIR_Name);
 
 			// 留坑，之后改成长文件名判断
 			if (strcmp(f->DIR_Name, name) == 0) {
@@ -621,15 +622,18 @@ dir_alloc_file(struct DIREnt *dir, struct DIREnt **file)
 
 	int clus = dir->DIR_FstClusHI * 65536 + dir->DIR_DstClusLO;
 
+	if (__debug) writef("alloc!\n");
+
 	for (i = clus; i != CLUS_FILEEND; i = FATtable[i-2]) {
 		// Step 2: Read the i'th block of the dir.
 		// Hint: Use file_get_block.
-		r = read_block(CLUS2BLK(i), blk, 0);
+		r = read_block(CLUS2BLK(i), &blk, 0);
 		if (r < 0) return r;
 
 		// Step 3: Find target file by file name in all files on this block.
 		// If we find the target file, set the result to *file and set f_dir field.
 		for (j = 0; j < BY2BLK / BY2DIRENT; j++) {
+			if (__debug) writef("j = %d\n", j);
 			f = ((struct DIREnt *)blk) + j;
 			if (f->DIR_Attr == ATTR_LONG_NAME_MASK) continue;
 			// 跳过长文件名项
@@ -648,6 +652,8 @@ dir_alloc_file(struct DIREnt *dir, struct DIREnt **file)
 	if (r < 0) return r;
 	FATtable[lastClus-2] = BLK2CLUS(r);
 	FATtable[BLK2CLUS(r)-2] = CLUS_FILEEND;
+
+	if (__debug) writef("alloc!\n");
 
 	// 从新分配的块中提取第一项作为返回值
 	u_int isnew;
@@ -754,7 +760,7 @@ walk_path(char *path, struct DIREnt **pdir, struct DIREnt **pfile, char *lastele
 int
 FAT_file_open(char *path, struct DIREnt **file)
 {	
-	writef("prepare to open path: %s\n", path);
+	// writef("prepare to open path: %s\n", path);
 	return walk_path(path, 0, file, 0);
 }
 
@@ -770,19 +776,19 @@ FAT_file_create(char *path, struct DIREnt **file)
 	char name[MAXNAMELEN];
 	int r;
 	struct DIREnt *dir, *f;
-
+	if(__debug) writef("here!");
 	if ((r = walk_path(path, &dir, &f, name)) == 0) {
 		return -E_FILE_EXISTS;
 	}
-
+	if(__debug) writef("here!");
 	if (r != -E_NOT_FOUND || dir == 0) {
 		return r;
 	}
-
+	if(__debug) writef("here!");
 	if (dir_alloc_file(dir, &f) < 0) {
 		return r;
 	}
-
+	if(__debug) writef("here!");
 	strcpy((char *)f->DIR_Name, name);
 	*file = f;
 	return 0;
