@@ -1,6 +1,6 @@
 #include "lib.h"
 
-char buf[60];
+char buf[600];
 
 int lsdir(char *str) {
     int fd, r, pos;
@@ -24,6 +24,9 @@ int lsdir(char *str) {
                 buf[pos] = 0;
                 close(fd);
                 return;
+            }
+            else if (r < 0) {
+                writef("r = %d\n", r);
             }
             else {
                 if (dirent.DIR_Name[0]) {
@@ -77,8 +80,5 @@ void umain() {
     user_assert(strcmp(buf, ". .. main test hello.c dev ") == 0);
 
     user_assert(lsdir("/root1/test/etc") >= 0); writef(buf);
-    struct Stat state;
-    stat("/root1/test/etc/A", &state);
-    writef("size = %d, is_dir = %d, name = %s.\n", state.st_size, state.st_isdir, state.st_name);
-    user_assert(strcmp(buf, ". .. config.json ") == 0);
+    user_assert(strcmp(buf, ". .. conf.json ") == 0);
 }
