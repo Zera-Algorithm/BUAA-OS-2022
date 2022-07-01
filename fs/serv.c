@@ -114,12 +114,13 @@ serve_open(u_int envid, struct Fsreq_open *rq)
 	writef("serve_open %08x %x 0x%x\n", envid, (int)rq->req_path, rq->req_omode);
 
 	u_char path[MAXPATHLEN];
-	struct File *f;
+	struct File *f = NULL;
 	struct Filefd *ff;
 	int fileid;
 	int r;
 	struct Open *o;
-	struct DIREnt *dirent;
+	struct DIREnt *dirent = NULL;
+	// 必要的初始化
 
 	// Copy in the path, making sure it's null-terminated
 	user_bcopy(rq->req_path, path, MAXPATHLEN);
@@ -177,10 +178,11 @@ serve_open(u_int envid, struct Fsreq_open *rq)
 
 	// 4. Fill out the Filefd structure
 	ff = (struct Filefd *)o->o_ff;
-	ff->f_file = *f;
+	if (f) ff->f_file = *f; // 在使用指针时一定注意判断指针是否为0
 	ff->fstype = o->fstype;
-	ff->f_FATfile = *dirent;
+	if (dirent) ff->f_FATfile = *dirent;
 	ff->f_fileid = o->o_fileid;
+
 	o->o_mode = rq->req_omode;
 	ff->f_fd.fd_omode = o->o_mode;
 	ff->f_fd.fd_dev_id = devfile.dev_id;
