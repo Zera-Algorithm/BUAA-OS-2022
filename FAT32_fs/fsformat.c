@@ -150,8 +150,10 @@ DIREnt *findEmptyEnt(uint DIRclus) {
 
 void mstrncpy(char *dst, char *src, int n) {
     int i;
+    printf("mstrncpy: ");
     for (i = 0; i < n; i++) {
         // 为结束位
+        printf("%c", src[i]);
         if (src[i] == 0) {
             dst[i] = src[i];
             break;
@@ -160,18 +162,20 @@ void mstrncpy(char *dst, char *src, int n) {
             dst[i] = src[i];
         }
     }
+    printf("\n");
 }
 
 // 查询到一个存储文件的空位，存储文件名，并返回文件的目录项（长文件名项已经填好）
 // 必须提前传入名称项，以分辨为此文件分配多少个长文件名项
 DIREnt *create_file(int DIRclus, char *name) {
+    printf("[*] filename = %s.\n", name);
     int len = strlen(name);
     int n_longEnt;
     int i, index;
     if (len > MAXNAMELEN) {
         printf("Filename %s:\nToo long!!\n", name);
     }
-    if ((len + 1) - 11 < 0) {
+    if ((len + 1) - 11 <= 0) {
         n_longEnt = 0;
     }
     else {
@@ -195,7 +199,7 @@ DIREnt *create_file(int DIRclus, char *name) {
         index = 11 + 26*(i-1);
         if (index <= len) mstrncpy(longEnt->LDIR_Name1, name+index, 10);
         if (index + 10 <= len) mstrncpy(longEnt->LDIR_Name2, name+index+10, 12);
-        if (index + 22 <= len) mstrncpy(longEnt->LDIR_Name2, name+index+22, 4);
+        if (index + 22 <= len) mstrncpy(longEnt->LDIR_Name3, name+index+22, 4);
     }
 
     DIREnt *dirEnt = findEmptyEnt(DIRclus);
@@ -431,6 +435,7 @@ void finish_fs(char *path) {
 
 int main(int argc, char **argv) {
     int i, argpos;
+    int j;
 
     init_disk();
 
@@ -449,16 +454,33 @@ int main(int argc, char **argv) {
     if (argpos+2 > argc)
         goto showHelp; // 参数不足，没有fs.img项目和[-r/file]选项
 
-    if(strcmp(argv[argpos+1], "-r") == 0) {
-        if (argpos+3 > argc)
-            goto showHelp; // 参数不足，-r后面没有目录项
-        for (i = argpos+2; i < argc; ++i) {
-            printf("Write directory: %s\n", argv[i]);
-            write_directory(rootDirEnt, argv[i]);
-        }
-    }
-    else {
-        for(i = argpos+1; i < argc; ++i) {
+    // 同时只允许写入文件夹或者文件的形式
+    // if(strcmp(argv[argpos+1], "-r") == 0) {
+    //     if (argpos+3 > argc)
+    //         goto showHelp; // 参数不足，-r后面没有目录项
+    //     for (i = argpos+2; i < argc; ++i) {
+    //         printf("Write directory: %s\n", argv[i]);
+    //         write_directory(rootDirEnt, argv[i]);
+    //     }
+    // }
+    // else {
+    //     for(i = argpos+1; i < argc; ++i) {
+    //         write_file(rootDirEnt, argv[i]);
+    //     }
+    // }
+
+    for(i = argpos+1; i < argc; i++) {
+        if (strcmp(argv[i], "-r") == 0) {
+            if (i+1 == argc) {
+                // -r之后没有参数，报错
+                goto showHelp;
+            }
+            for (j = i+1; j < argc; j++) {
+                printf("Write directory: %s\n", argv[j]);
+                write_directory(rootDirEnt, argv[j]);
+            }
+            break;
+        } else {
             write_file(rootDirEnt, argv[i]);
         }
     }
@@ -469,7 +491,8 @@ int main(int argc, char **argv) {
 showHelp:
     fprintf(stderr, "\
 Usage: fsformat [-l] gxemul/fs.img files...\n\
-       fsformat [-l] gxemul/fs.img -r DIR\n\
+       fsformat [-l] gxemul/fs.img -r DIR...\n\
+       fsformat [-l] gxemul/fs.img [files...] [-r DIR...]\n\
        fsformat -h\n\
        -l: little endian; or else big endian.\n");
     exit(0);

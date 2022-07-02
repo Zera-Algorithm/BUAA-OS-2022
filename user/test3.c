@@ -22,14 +22,24 @@ void longPrint(char *buffer) {
 
 char buf[81920];
 void umain() {
-    int fdnum;
+    int fdnum, len;
     struct Stat state;
 
     // 1. 读取文件内容
     readfullfile("/root1/lfile", buf);
 
+    // 2. 获取文件长度
+    len = strlen(buf);
+
     // 3. 输出内容
     writef("The content of the file(/root1/lfile): ");
     longPrint(buf);
+
+    // 4. 检查文件首尾是否正常
+    user_assert(strcmp("This is the end of the file!\nHappy this day!\n", buf+len-46));
+    buf[97] = 0;
+    user_assert(strcmp("This is a file to test function.\nIt's size must be longer than 4KB.\nThe following is the content:", buf) == 0);
+    
+    writef("long file test passed!\n");
     return 0;
 }

@@ -94,7 +94,7 @@ file_close(struct Fd *fd)
 
 	// Request the file server to close the file with fsipc.
 	if ((r = fsipc_close(fileid)) < 0) {
-		writef("cannot close the file\n");
+		// writef("cannot close the file\n");
 		return r;
 	}
 
@@ -104,7 +104,7 @@ file_close(struct Fd *fd)
 	}
 	for (i = 0; i < size; i += BY2PG) {
 		if ((r = syscall_mem_unmap(0, va + i)) < 0) {
-			writef("cannont unmap the file.\n");
+			// writef("cannont unmap the file.\n");
 			return r;
 		}
 	}
@@ -196,7 +196,7 @@ file_write(struct Fd *fd, const void *buf, u_int n, u_int offset)
 			return r;
 		}
 	}
-
+	// writef("after write");
 	// Write the data
 	user_bcopy(buf, (char *)fd2data(fd) + offset, n);
 	return n;
@@ -259,7 +259,7 @@ ftruncate(int fdnum, u_int size)
 	if ((r = fsipc_set_size(fileid, size)) < 0) {
 		return r;
 	}
-
+	// writef("set_size");
 	va = fd2data(fd);
 
 	/* Step2: Map the extended content into my space.(Only extend can happen.) */

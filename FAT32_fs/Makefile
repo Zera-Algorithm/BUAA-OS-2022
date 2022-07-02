@@ -12,7 +12,7 @@ all: fs1.img fs.o
 fs1.img: fsformat.c fat32.h
 	gcc fsformat.c $(INCLUDES) -o fsformat
 	chmod +x fsformat
-	./fsformat ../gxemul/fs1.img -r test
+	./fsformat ../gxemul/fs1.img motd lfile -r test
 
 %.o: %.c
 	echo user1 cc $<

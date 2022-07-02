@@ -27,7 +27,7 @@ FSLIB :=	fs.o \
 		ide.o \
 		test.o
 
-FSIMGFILES := motd newmotd testfile
+FSIMGFILES := motd newmotd testfile test_fsformat.sh
 # add my testfile, to pretend the error.
 
 CFLAGS += -nostdlib -static

@@ -247,7 +247,7 @@ block_is_free(u_int blockno)
 		return 0;
 	}
 
-	if (FATtable[BLK2CLUS(blockno)] == CLUS_FREE) {
+	if (FATtable[BLK2CLUS(blockno)-2] == CLUS_FREE) {
 		return 1;
 	}
 
@@ -266,7 +266,7 @@ free_block(u_int blockno)
 	
 	// Step 2: Update the flag bit in bitmap.
 	// you can use bit operation to update flags, such as  a |= (1 << n) .
-	FATtable[BLK2CLUS(blockno)] = CLUS_FREE;
+	FATtable[BLK2CLUS(blockno)-2] = CLUS_FREE;
 }
 
 // Overview:
@@ -487,6 +487,7 @@ file_map_block(struct DIREnt *file, int filebno, u_int *pdiskbno, u_int alloc)
 		FATtable[clus-2] = CLUS_FILEEND;
 		// 设置文件终止
 
+		// writef("set pdiskbno...\n");
 		*pdiskbno = CLUS2BLK(clus);
 	}
 	else {
@@ -590,14 +591,14 @@ FAT_file_dirty(struct DIREnt *f, u_int offset)
 }
 
 // 在字符串前面插入字符串
-void strins(char *buf, char *str) {
-	int lstr = strlen(str);
+static void
+strins(char *buf, char *str, int len) {
 	int lbuf = strlen(buf);
 	int i;
 	for (i = lbuf; i >= 0; i--) {
-		buf[i+lstr] = buf[i];
+		buf[i+len] = buf[i];
 	}
-	for (i = 0; i < lstr; i++) {
+	for (i = 0; i < len; i++) {
 		buf[i] = str[i];
 	}
 }
@@ -638,7 +639,12 @@ dir_lookup(struct DIREnt *dir, char *name, struct DIREnt **file, longEntSet *lon
 		// If we find the target file, set the result to *file and set f_dir field.
 		for (j = 0; j < BY2BLK / BY2DIRENT; j++) {
 			f = ((struct DIREnt *)blk) + j;
+			
+			// 跳过空项
+			if (f->DIR_Name[0] == 0 || f->DIR_Name[0] == 0xE5) continue;
+
 			if (f->DIR_Attr == ATTR_LONG_NAME_MASK) {
+
 				longEnt = (LongNameEnt *)f;
 				// 是第一项
 				if (longEnt->LDIR_Ord & LAST_LONG_ENTRY) {
@@ -648,16 +654,21 @@ dir_lookup(struct DIREnt *dir, char *name, struct DIREnt **file, longEntSet *lon
 
 				// 向longSet里面存放长文件名项的指针
 				longSet->longEnt[longSet->cnt++] = longEnt;
-				strins(tmp_name, longEnt->LDIR_Name3);
-				strins(tmp_name, longEnt->LDIR_Name2);
-				strins(tmp_name, longEnt->LDIR_Name1);
+				strins(tmp_name, longEnt->LDIR_Name3, 4);
+				strins(tmp_name, longEnt->LDIR_Name2, 12);
+				strins(tmp_name, longEnt->LDIR_Name1, 10);
 			}
 			else {
-				strins(tmp_name, f->DIR_Name);
-				writef("Find long name Ent: %s\n", tmp_name);
+				strins(tmp_name, f->DIR_Name, 11);
+				// writef("Find long name Ent: %s\n", tmp_name);
+				// writef("size = %d\n", sizeof(LongNameEnt));
 				if (strcmp(tmp_name, name) == 0) {
 					*file = f;
 					return 0;
+				}
+				else {
+					tmp_name[0] = 0;
+					longSet->cnt = 0;
 				}
 			}
 		}
@@ -695,7 +706,7 @@ dir_alloc_Ent(struct DIREnt *dir, struct DIREnt **ent)
 		for (j = 0; j < BY2BLK / BY2DIRENT; j++) {
 			if (__debug) writef("j = %d\n", j);
 			f = ((struct DIREnt *)blk) + j;
-			
+
 			// 文件名第一位为0，表示目录项空闲
 			if (f->DIR_Name[0] == 0) {
 				*ent = f;
@@ -764,7 +775,7 @@ dir_alloc_file(struct DIREnt *dir, struct DIREnt **file, char *name) {
         index = 11 + 26*(i-1);
         if (index <= len) mstrncpy(longEnt->LDIR_Name1, name+index, 10);
         if (index + 10 <= len) mstrncpy(longEnt->LDIR_Name2, name+index+10, 12);
-        if (index + 22 <= len) mstrncpy(longEnt->LDIR_Name2, name+index+22, 4);
+        if (index + 22 <= len) mstrncpy(longEnt->LDIR_Name3, name+index+22, 4);
 	}
 	dir_alloc_Ent(dir, &ent);
 	mstrncpy(ent->DIR_Name, name, 11);
@@ -904,6 +915,8 @@ FAT_file_create(char *path, struct DIREnt **file)
 		return r;
 	}
 	
+	f->DIR_FileSize = 0;
+	f->DIR_FstClusHI = f->DIR_DstClusLO = 0;
 	*file = f;
 	return 0;
 }

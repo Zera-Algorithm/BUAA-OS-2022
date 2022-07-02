@@ -22,7 +22,7 @@ void umain() {
     fdnum = open("/root1/motd", O_RDONLY);
     if (fdnum < 0) user_panic("open error! code = %d", fdnum);
 
-    readn(fdnum, buf, 40);
+    readn(fdnum, buf, 80);
     writef("The content of /root1/motd is: %s", buf);
 
     close(fdnum);
