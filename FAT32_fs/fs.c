@@ -17,6 +17,13 @@ static int __debug = 0;
 static u_int *FATtable;
 static u_int nFATtable;
 
+#define MAXLONGENT 8
+// 用于在查询文件名时存放长文件名项
+typedef struct longEntSet {
+	LongNameEnt *longEnt[MAXLONGENT];
+	int cnt;
+} longEntSet;
+
 static void file_flush(struct DIREnt *);
 static int block_is_free(u_int);
 static int read_block(u_int blockno, void **blk, u_int *isnew);
@@ -582,6 +589,19 @@ FAT_file_dirty(struct DIREnt *f, u_int offset)
 	return 0;
 }
 
+// 在字符串前面插入字符串
+void strins(char *buf, char *str) {
+	int lstr = strlen(str);
+	int lbuf = strlen(buf);
+	int i;
+	for (i = lbuf; i >= 0; i--) {
+		buf[i+lstr] = buf[i];
+	}
+	for (i = 0; i < lstr; i++) {
+		buf[i] = str[i];
+	}
+}
+
 // 从此开始！！
 // Overview:
 //	Try to find a file named "name" in dir.  If so, set *file to it.
@@ -590,13 +610,21 @@ FAT_file_dirty(struct DIREnt *f, u_int offset)
 //	return 0 on success, and set the pointer to the target file in `*file`.
 //		< 0 on error.
 /*** exercise 5.7 ***/
+// 从此开始支持长文件名
+// 找一个名字为name的文件
 static int
-dir_lookup(struct DIREnt *dir, char *name, struct DIREnt **file)
+dir_lookup(struct DIREnt *dir, char *name, struct DIREnt **file, longEntSet *longSet)
 {
 	int r;
 	u_int i, j;
 	void *blk;
 	struct DIREnt *f;
+	struct LongNameEnt *longEnt;
+
+	char tmp_name[MAXNAMELEN];
+	tmp_name[0] = 0; // 初始化为空字符串
+
+	longSet->cnt = 0; // 初始化longSet有0个元素
 	
 	int clus = dir->DIR_FstClusHI * 65536 + dir->DIR_DstClusLO;
 
@@ -610,15 +638,27 @@ dir_lookup(struct DIREnt *dir, char *name, struct DIREnt **file)
 		// If we find the target file, set the result to *file and set f_dir field.
 		for (j = 0; j < BY2BLK / BY2DIRENT; j++) {
 			f = ((struct DIREnt *)blk) + j;
-			if (f->DIR_Attr == ATTR_LONG_NAME_MASK) continue;
-			// 跳过长文件名项
+			if (f->DIR_Attr == ATTR_LONG_NAME_MASK) {
+				longEnt = (LongNameEnt *)f;
+				// 是第一项
+				if (longEnt->LDIR_Ord & LAST_LONG_ENTRY) {
+					tmp_name[0] = 0;
+					longSet->cnt = 0;
+				}
 
-			// writef("Find file: %s\n", f->DIR_Name);
-
-			// 留坑，之后改成长文件名判断
-			if (strcmp(f->DIR_Name, name) == 0) {
-				*file = f;
-				return 0;
+				// 向longSet里面存放长文件名项的指针
+				longSet->longEnt[longSet->cnt++] = longEnt;
+				strins(tmp_name, longEnt->LDIR_Name3);
+				strins(tmp_name, longEnt->LDIR_Name2);
+				strins(tmp_name, longEnt->LDIR_Name1);
+			}
+			else {
+				strins(tmp_name, f->DIR_Name);
+				writef("Find long name Ent: %s\n", tmp_name);
+				if (strcmp(tmp_name, name) == 0) {
+					*file = f;
+					return 0;
+				}
 			}
 		}
 
@@ -631,8 +671,9 @@ dir_lookup(struct DIREnt *dir, char *name, struct DIREnt **file)
 // Overview:
 //	Alloc a new File structure under specified directory. Set *file
 //	to point at a free File structure in dir.
+// 需支持长文件名
 static int
-dir_alloc_file(struct DIREnt *dir, struct DIREnt **file)
+dir_alloc_Ent(struct DIREnt *dir, struct DIREnt **ent)
 {
 	int r;
 	u_int i, j, lastClus = 0;
@@ -654,12 +695,10 @@ dir_alloc_file(struct DIREnt *dir, struct DIREnt **file)
 		for (j = 0; j < BY2BLK / BY2DIRENT; j++) {
 			if (__debug) writef("j = %d\n", j);
 			f = ((struct DIREnt *)blk) + j;
-			if (f->DIR_Attr == ATTR_LONG_NAME_MASK) continue;
-			// 跳过长文件名项
-
+			
 			// 文件名第一位为0，表示目录项空闲
 			if (f->DIR_Name[0] == 0) {
-				*file = f;
+				*ent = f;
 				return 0;
 			}
 		}
@@ -679,9 +718,57 @@ dir_alloc_file(struct DIREnt *dir, struct DIREnt **file)
 	r = read_block(r, &blk, &isnew);
 	if (r < 0) return r;
 	f = blk;
-	*file = f;
+	*ent = f;
 
 	return 0;
+}
+
+static void
+mstrncpy(char *dst, char *src, int n) {
+    int i;
+    for (i = 0; i < n; i++) {
+        // 为结束位
+        if (src[i] == 0) {
+            dst[i] = src[i];
+            break;
+        }
+        else {
+            dst[i] = src[i];
+        }
+    }
+}
+
+static int
+dir_alloc_file(struct DIREnt *dir, struct DIREnt **file, char *name) {
+	int len = strlen(name) + 1;
+	int nlongEnt, i, index;
+	struct DIREnt *ent;
+	struct LongNameEnt *longEnt;
+	if (len <= 11) {
+		nlongEnt = 0;
+	}
+	else {
+		nlongEnt = ((len-11) % 26 == 0) ? ((len-11) / 26) : ((len-11) / 26 + 1);
+	}
+	for (i = nlongEnt; i >= 1; i--) {
+		dir_alloc_Ent(dir, &ent);
+		longEnt = (LongNameEnt *)ent;
+
+		if (i == nlongEnt) {
+            longEnt->LDIR_Ord = LAST_LONG_ENTRY | i;
+        } else {
+            longEnt->LDIR_Ord = i;
+        }
+        longEnt->LDIR_Attr = ATTR_LONG_NAME_MASK;
+        // 其它为0的项不用填，因为全局变量在加载时就自动清零了
+        index = 11 + 26*(i-1);
+        if (index <= len) mstrncpy(longEnt->LDIR_Name1, name+index, 10);
+        if (index + 10 <= len) mstrncpy(longEnt->LDIR_Name2, name+index+10, 12);
+        if (index + 22 <= len) mstrncpy(longEnt->LDIR_Name2, name+index+22, 4);
+	}
+	dir_alloc_Ent(dir, &ent);
+	mstrncpy(ent->DIR_Name, name, 11);
+	*file = ent;
 }
 
 // Overview:
@@ -703,8 +790,10 @@ skip_slash(char *p)
 //	the file is in.
 //	If we cannot find the file but find the directory it should be in, set
 //	*pdir and copy the final path element into lastelem.
+// longSet返回文件的长文件名信息
 static int
-walk_path(char *path, struct DIREnt **pdir, struct DIREnt **pfile, char *lastelem)
+walk_path(char *path, struct DIREnt **pdir, struct DIREnt **pfile, 
+			char *lastelem, longEntSet *longSet)
 {
 	char *p;
 	char name[MAXNAMELEN];
@@ -744,7 +833,7 @@ walk_path(char *path, struct DIREnt **pdir, struct DIREnt **pfile, char *lastele
 			return -E_NOT_FOUND;
 		}
 
-		if ((r = dir_lookup(dir, name, &file)) < 0) {
+		if ((r = dir_lookup(dir, name, &file, longSet)) < 0) {
 			if (r == -E_NOT_FOUND && *path == '\0') {
 				if (pdir) {
 					*pdir = dir;
@@ -779,8 +868,9 @@ walk_path(char *path, struct DIREnt **pdir, struct DIREnt **pfile, char *lastele
 int
 FAT_file_open(char *path, struct DIREnt **file)
 {	
+	longEntSet longSet;
 	if(__debug) writef("prepare to open path: %s\n", path);
-	int r = walk_path(path, 0, file, 0);
+	int r = walk_path(path, 0, file, 0, &longSet);
 	if (r < 0) return r;
 	else {
 		// writef("open path succeed!\n");
@@ -800,20 +890,20 @@ FAT_file_create(char *path, struct DIREnt **file)
 	char name[MAXNAMELEN];
 	int r;
 	struct DIREnt *dir, *f;
-	if(__debug) writef("here!");
-	if ((r = walk_path(path, &dir, &f, name)) == 0) {
+	longEntSet *longSet;
+
+	if ((r = walk_path(path, &dir, &f, name, &longSet)) == 0) {
 		return -E_FILE_EXISTS;
 	}
-	if(__debug) writef("here!");
+	
 	if (r != -E_NOT_FOUND || dir == 0) {
 		return r;
 	}
-	if(__debug) writef("here!");
-	if (dir_alloc_file(dir, &f) < 0) {
+	
+	if (dir_alloc_file(dir, &f, name) < 0) {
 		return r;
 	}
-	if(__debug) writef("here!");
-	strcpy((char *)f->DIR_Name, name);
+	
 	*file = f;
 	return 0;
 }
@@ -913,14 +1003,16 @@ FAT_file_close(struct DIREnt *f)
 
 // Overview:
 //	Remove a file by truncating it and then zeroing the name.
+// 需支持长文件名
 int
 FAT_file_remove(char *path)
 {
-	int r;
+	int r, i;
 	struct DIREnt *f;
+	longEntSet longSet;
 
 	// Step 1: find the file on the disk.
-	if ((r = walk_path(path, 0, &f, 0)) < 0) {
+	if ((r = walk_path(path, 0, &f, 0, &longSet)) < 0) {
 		return r;
 	}
 
@@ -928,7 +1020,10 @@ FAT_file_remove(char *path)
 	file_truncate(f, 0);
 
 	// Step 3: clear it's name.
-	f->DIR_Name[0] = '\0'; // 其实应当设为0xE5，待之后改吧
+	f->DIR_Name[0] = 0xE5; // 需要全部设为0xE5
+	for (i = 0; i < longSet.cnt; i++) {
+		longSet.longEnt[i]->LDIR_Ord = 0xE5;
+	}
 
 	// Step 4: flush the file.
 	file_flush(f);
