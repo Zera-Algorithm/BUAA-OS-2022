@@ -3,19 +3,19 @@
 char buf[600];
 
 // 在字符串前面插入字符串
-void strins(char *buf, char *str, int len) {
-	int lbuf = strlen(buf);
+void strins(char *_buf, char *str, int len) {
+	int lbuf = strlen(_buf);
 	int i;
 	for (i = lbuf; i >= 0; i--) {
-		buf[i+len] = buf[i];
+		_buf[i+len] = _buf[i];
 	}
 	for (i = 0; i < len; i++) {
-		buf[i] = str[i];
+		_buf[i] = str[i];
 	}
 }
 
 int lsdir(char *str) {
-    int fd, r;
+    int fd, r, pos = 0;
     struct Stat state;
     r = stat(str, &state);
     
@@ -33,6 +33,7 @@ int lsdir(char *str) {
         return -E_INVAL;
     }
     else {
+        buf[pos] = 0;
         fd = open(str, O_RDONLY);
         
         char t = str[6];
@@ -42,7 +43,6 @@ int lsdir(char *str) {
             while(1) {
                 r = readn(fd, &dirent, sizeof(DIREnt));
                 if (r == 0) {
-                    writef("\n");
                     close(fd);
                     break;
                 }
@@ -62,7 +62,10 @@ int lsdir(char *str) {
                         else {
                             strins(name, dirent.DIR_Name, 11);
                             // 找到一个目录项
-                            writef("%s ", name);
+                            strcpy(buf+pos, name);
+                            pos += strlen(name);
+                            buf[pos++] = ' ';
+                            // writef("root1:%s \n", name);
                             name[0] = 0;
                         }
                     }
@@ -73,16 +76,19 @@ int lsdir(char *str) {
             while (1) {
                 r = readn(fd, &file, sizeof(file));
                 if (r == 0) {
-                    writef("\n");
                     close(fd);
                     break;
                 }
                 else {
                     if (file.f_name[0] == 0) continue;
-                    writef("%s ", file.f_name);
+                    strcpy(buf+pos, file.f_name);
+                    pos += strlen(file.f_name);
+                    buf[pos++] = ' ';
+                    // writef("%s ", file.f_name);
                 }
             }
         }
+        buf[pos] = 0;
         return 0;
     }
 }
@@ -97,17 +103,19 @@ void umain() {
 
 // ----------------root-----------------
     user_assert(lsdir("/root0") >= 0);
-    writef(buf);
-    user_assert(strcmp(buf, "motd newmotd testfile ") == 0);
+    // writef(buf);
+    user_assert(strcmp(buf, "motd newmotd testfile test_fsformat.sh ") == 0);
 
     user_assert(lsdir("/root0/") >= 0);
-    user_assert(strcmp(buf, "motd newmotd testfile ") == 0);
+    // writef(buf);
+    user_assert(strcmp(buf, "motd newmotd testfile test_fsformat.sh ") == 0);
 
     user_assert(lsdir("/root1") >= 0);
-    user_assert(strcmp(buf, "test ") == 0);
+    // writef(buf);
+    user_assert(strcmp(buf, "motd lfile test ") == 0);
 
     user_assert(lsdir("/root1/") >= 0);
-    user_assert(strcmp(buf, "test ") == 0);
+    user_assert(strcmp(buf, "motd lfile test ") == 0);
 
 // -------------------- . / .. ----------------
     user_assert(lsdir("/root0/.") < 0);

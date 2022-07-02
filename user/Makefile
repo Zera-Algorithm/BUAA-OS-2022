@@ -30,8 +30,7 @@ all: devtst.x devtst.b tltest.x tltest.b \
 	input.x input.b lsdir.x lsdir.b \
 	test1.x test1.b test2.x test2.b test3.x test3.b \
 	test4.x test4.b test5.x test5.b test6.x test6.b \
-	test7.x test7.b test8.x test8.b test9.x test9.b
-# test10.x test10.b
+	test7.x test7.b test8.x test8.b test9.x test9.b test10.x test10.b
 
 %.x: %.b.c
 	echo cc1 $<
