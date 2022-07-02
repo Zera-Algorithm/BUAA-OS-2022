@@ -173,6 +173,7 @@ serve_open(u_int envid, struct Fsreq_open *rq)
 
 			if ((rq->req_omode & O_CREAT) != 0) {
 				r = FAT_file_create((char *)(path+6), &dirent);
+				writef("finish create...\n");
 				if (r < 0) {
 					ipc_send(envid, r, 0, 0);
 					return;

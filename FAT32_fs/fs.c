@@ -895,29 +895,32 @@ FAT_file_open(char *path, struct DIREnt **file)
 // Post-Condition:
 //	On success set *file to point at the file and return 0.
 // 	On error return < 0.
+char _name[MAXPATHLEN];
 int
 FAT_file_create(char *path, struct DIREnt **file)
 {
-	char name[MAXNAMELEN];
 	int r;
 	struct DIREnt *dir, *f;
-	longEntSet *longSet;
+	longEntSet longSet;
 
-	if ((r = walk_path(path, &dir, &f, name, &longSet)) == 0) {
+	if ((r = walk_path(path, &dir, &f, _name, &longSet)) == 0) {
 		return -E_FILE_EXISTS;
 	}
 	
+	if (__debug) writef("walk path done!");
 	if (r != -E_NOT_FOUND || dir == 0) {
 		return r;
 	}
 	
-	if (dir_alloc_file(dir, &f, name) < 0) {
+	if (dir_alloc_file(dir, &f, _name) < 0) {
 		return r;
 	}
 	
+	if (__debug) writef("[#] Alloc a file!!\n");
 	f->DIR_FileSize = 0;
 	f->DIR_FstClusHI = f->DIR_DstClusLO = 0;
 	*file = f;
+	if (__debug) writef("[#] Alloc a file!! name = %s, len = %d\n", _name, strlen(_name));
 	return 0;
 }
 
