@@ -195,7 +195,7 @@ read_block(u_int blockno, void **blk, u_int *isnew)
 		if (isnew) {
 			*isnew = 1;
 		}
-		syscall_mem_alloc(0, va, PTE_V | PTE_R);
+		syscall_mem_alloc(0, va, PTE_V | PTE_R | PTE_FS);
 
 		// 我们文件系统默认挂载在1号盘
 		ide_read(1, blockno * SECT2BLK, (void *)va, SECT2BLK);
@@ -227,7 +227,10 @@ write_block(u_int blockno)
 
 	// 清空blockCacheChanged字段，防止再次出现页写入异常
 	pa = PTE_ADDR((*vpt)[diskaddr(blockno)>>12]);
-	pages[pa>>12].blockCacheChanged = 0;
+	if (pages[pa>>12].blockCacheChanged != 0) {
+		writef("Write back dirty block: %d\n", blockno);
+		pages[pa>>12].blockCacheChanged = 0;
+	}
 
 	// 重设权限位
 	syscall_mem_map(0, va, 0, va, (PTE_V | PTE_R | PTE_LIBRARY | PTE_FS));
@@ -247,7 +250,7 @@ block_is_free(u_int blockno)
 		return 0;
 	}
 
-	if (FATtable[BLK2CLUS(blockno)-2] == CLUS_FREE) {
+	if (FATtable[BLK2CLUS(blockno) - 2] == CLUS_FREE) {
 		return 1;
 	}
 
@@ -1001,12 +1004,15 @@ file_flush(struct DIREnt *f)
 void
 FAT_fs_sync(void)
 {
+	writef("Sync changes into disk...(nblocks = %d)\nDirty block: ", nblocks);
 	int i;
 	for (i = 0; i < nblocks; i++) {
 		if (block_is_dirty(i)) {
+			writef("%d ", i);
 			write_block(i);
 		}
 	}
+	writef("\n");
 }
 
 // Overview:

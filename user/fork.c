@@ -97,7 +97,7 @@ pgfault(u_int va)
 	if ((perm & PTE_COW) == 0) {
 		if ((perm & PTE_FS) != 0) {
 			ppn = ((*vpt)[pn]) >> 12;
-			// writef("before dirty: %d(ppn = %d)\n", pages[ppn].blockCacheChanged, ppn);
+			writef("before dirty: %d(ppn = %d)\n", pages[ppn].blockCacheChanged, ppn);
 
 			// 此块物理内存对应块缓存
 			pages[ppn].blockCacheChanged = 1;

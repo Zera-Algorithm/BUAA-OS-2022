@@ -3,6 +3,7 @@ INCLUDES = -I../include/ -I../user/
 FSIMGFILES := motd lfile fat32.h
 
 all: fs1.img fs.o
+# all: fs.o
 
 # fs1.img: fsformat.c fat32.h
 # 	gcc fsformat.c $(INCLUDES) -o fsformat
