@@ -482,8 +482,8 @@ file_map_block(struct DIREnt *file, int filebno, u_int *pdiskbno, u_int alloc)
 			}
 			
 			if (clus == 0) { // 对应文件大小为0，所以初始块号为0的情况，先分配初始块
-				file->DIR_FstClusHI = r >> 16;
-				file->DIR_DstClusLO = r & 0xffff;
+				file->DIR_FstClusHI = BLK2CLUS(r) >> 16; // 始终应当是簇号而不是块号
+				file->DIR_DstClusLO = BLK2CLUS(r) & 0xffff;
 			}
 			else {
 				// writef("Link a new block to %d!\n", BLK2CLUS(r));
