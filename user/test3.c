@@ -36,7 +36,7 @@ void umain() {
     longPrint(buf);
 
     // 4. 检查文件首尾是否正常
-    user_assert(strcmp("This is the end of the file!\nHappy this day!\n", buf+len-46));
+    user_assert(strcmp("This is the end of the file!\nHappy this day!\n", buf+len-45) == 0);
     buf[97] = 0;
     user_assert(strcmp("This is a file to test function.\nIt's size must be longer than 4KB.\nThe following is the content:", buf) == 0);
     
