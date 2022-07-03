@@ -124,8 +124,17 @@ serve_open(u_int envid, struct Fsreq_open *rq)
 	// file_open是为了获取文件的File *指针。
 	if ((r = file_open((char *)path, &f)) < 0) {
 	//	user_panic("file_open failed: %d, invalid path: %s", r, path);
-		ipc_send(envid, r, 0, 0);
-		return ;
+		if (rq->req_omode & O_CREAT) {
+			r = file_create((char *)path, &f);
+			if (r < 0) {
+				ipc_send(envid, r, 0, 0);
+				return ;
+			}
+		}
+		else {
+			ipc_send(envid, r, 0, 0);
+			return ;
+		}
 	}
 
 	// Save the file pointer.

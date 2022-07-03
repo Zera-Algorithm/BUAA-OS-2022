@@ -125,7 +125,8 @@ again:
 				writef("syntax error: > not followed by word\n");
 				exit();
 			}
-			fdnum = open(t, O_WRONLY); // 以只写方式打开
+			remove(t);
+			fdnum = open(t, O_WRONLY | O_CREAT); // 以只写方式打开
 			if (fdnum < 0) {
 				writef("File error: > cannot open the file!\n");
 				exit();
