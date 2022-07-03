@@ -228,7 +228,7 @@ write_block(u_int blockno)
 	// 清空blockCacheChanged字段，防止再次出现页写入异常
 	pa = PTE_ADDR((*vpt)[diskaddr(blockno)>>12]);
 	if (pages[pa>>12].blockCacheChanged != 0) {
-		writef("Write back dirty block: %d\n", blockno);
+		// writef("Write back dirty block: %d\n", blockno);
 		pages[pa>>12].blockCacheChanged = 0;
 	}
 
@@ -456,6 +456,7 @@ file_map_block(struct DIREnt *file, int filebno, u_int *pdiskbno, u_int alloc)
 {
 	int i;
 	u_int clus;
+	// 没想到又引入了新的bug？
 	int nfileblk = countBlocks(file); // 此计算块数的方法同时适用于文件和目录
 	// writef("filebno = %d[map_block].\n", filebno);
 
@@ -476,16 +477,19 @@ file_map_block(struct DIREnt *file, int filebno, u_int *pdiskbno, u_int alloc)
 		// 2. 继续分配块
 		for (i = 0; i < (filebno-nfileblk+1); i++) {
 			int r = alloc_block();
-			if (r < 0) return r;
+			if (r < 0) {
+				return r; // TODO: 考虑中途出现分配失败的情况，此时应当撤销之前的所有更改
+			}
 			
 			if (clus == 0) { // 对应文件大小为0，所以初始块号为0的情况，先分配初始块
 				file->DIR_FstClusHI = r >> 16;
 				file->DIR_DstClusLO = r & 0xffff;
 			}
 			else {
+				// writef("Link a new block to %d!\n", BLK2CLUS(r));
 				FATtable[clus-2] = BLK2CLUS(r);
 			}
-			clus = r;
+			clus = BLK2CLUS(r);
 		}
 		FATtable[clus-2] = CLUS_FILEEND;
 		// 设置文件终止
